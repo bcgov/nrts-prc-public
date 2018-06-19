@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnChanges, OnDestroy, Input, ViewChild, SimpleChanges } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { Application } from 'app/models/application';
 import { SearchService } from 'app/services/search.service';
@@ -10,6 +10,9 @@ import * as _ from 'lodash';
 
 declare module 'leaflet' {
   export interface FeatureGroup<P = any> {
+    dispositionId: number;
+  }
+  export interface Marker<P = any> {
     dispositionId: number;
   }
 }
@@ -41,13 +44,18 @@ const markerIconYellowLg = L.icon({
 export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
   // NB: this component is bound to the same list of apps as the other components
   @Input() allApps: Array<Application> = []; // from applications component
+  @ViewChild('applist') applist;
 
   public loading = true; // for spinner
   private map: L.Map = null;
-  private appsFG: L.FeatureGroup[] = []; // groups of layers for each app
-  private currentMarker: L.Marker = null; // for highlighting an app
-  public currentApp: Application = null; // for highlighting an app
-  // private markersCG = L.markerClusterGroup();
+  private appsFG: L.FeatureGroup[] = []; // list of FGs (containing layers) for each app
+  private markers: L.Marker[] = []; // list of markers
+  private currentMarker: L.Marker = null; // for removing previous marker
+  private markerClusterGroup = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    maxClusterRadius: 40,
+    // iconCreateFunction: this.clusterCreate
+  });
   private fitBoundsOptions: L.FitBoundsOptions = {
     // disable animation to prevent known bug where zoom is sometimes incorrect
     // ref: https://github.com/Leaflet/Leaflet/issues/3249
@@ -65,6 +73,12 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
     private searchService: SearchService,
     public configService: ConfigService
   ) { }
+
+  // for creating custom cluster icon
+  private clusterCreate(cluster): L.Icon | L.DivIcon {
+    const html = cluster.getChildcount().toString();
+    return L.divIcon({ html: html, className: 'my-cluster', iconSize: L.point(40, 40) });
+  }
 
   public ngOnInit() {
     const self = this; // for nested functions
@@ -255,13 +269,13 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
       fg.clearLayers();
     }
 
-    // DEBUGGING
-    // let n = 0;
-    // this.map.eachLayer(() => n++);
-    // console.log('# map layers =', n);
+    // remove and clear all markers
+    this.markerClusterGroup.removeFrom(this.map);
+    this.markerClusterGroup.clearLayers();
 
-    // empty the list
+    // empty the lists
     this.appsFG.length = 0;
+    this.markers.length = 0;
 
     this.allApps.filter(a => a.isMatches).forEach(app => {
       const appFG = L.featureGroup(); // layers for current app
@@ -304,19 +318,26 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
         const popup = L.popup(popupOptions).setContent(htmlContent);
         layer.bindPopup(popup);
         layer.addTo(appFG);
-
-        // const marker = L.marker(appFG.getBounds().getCenter())
-        //   .setIcon(markerIconYellow)
-        //   .on('click', L.Util.bind(self.onMarkerClick, self, app))
-        //   .addTo(self.markersCG);
       });
       self.appsFG.push(appFG); // save to list
       appFG.addTo(self.map); // add to map
       appFG.addTo(globalFG); // for bounds
       // appFG.on('click', (event) => console.log('app =', app)); // FUTURE: highlight this app in list?
 
-      // self.markersCG.addTo(self.map);
+      // add marker
+      const appBounds = appFG.getBounds();
+      if (appBounds && appBounds.isValid()) {
+        const marker = L.marker(appBounds.getCenter(), { title: app.client })
+          .setIcon(markerIconYellow)
+          .on('click', L.Util.bind(self.onMarkerClick, self, app));
+        marker.dispositionId = app.tantalisID;
+        self.markers.push(marker); // save to list
+        marker.addTo(self.markerClusterGroup);
+      }
     });
+
+    // add markers group to map
+    this.markerClusterGroup.addTo(this.map);
 
     // fit the global bounds
     const globalBounds = globalFG.getBounds();
@@ -324,50 +345,41 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
       this.map.fitBounds(globalBounds, this.fitBoundsOptions);
     }
 
+    // DEBUGGING
+    // let n = 0;
+    // this.map.eachLayer(() => n++);
+    // console.log('# map layers =', n);
+    // console.log('# marker layers =', this.markerClusterGroup.getLayers().length);
+
     this.loading = false;
+  }
+
+  private onMarkerClick(...args: any[]) {
+    const app = args[0] as Application;
+    // const marker = args[1].target as L.Marker;
+
+    this.applist.toggleCurrentApp(app); // update selected item in app list
   }
 
   /**
    * Event handler called when list component selects or unselects an app.
    */
-  // TODO: this should do the same thing as clicking on a pin
-  // TODO: pin should get larger and details popup should display
-  // TODO: clicking on pin should select app in list
   public highlightApplication(app: Application, show: boolean) {
-
-    //
-    // TODO: find subject marker, then size it accordingly
-    //
-
-    // remove existing marker, if any
+    // reset icon on previous marker, if any
     if (this.currentMarker) {
-      this.currentMarker.removeFrom(this.map);
+      this.currentMarker.setIcon(markerIconYellow);
       this.currentMarker = null;
     }
 
-    if (show && app.features.length) {
-      const fg = _.find(this.appsFG, { dispositionId: app.tantalisID });
-      if (fg) {
-        const center = fg.getBounds().getCenter();
-
-        // add new marker
-        // this.currentMarker = L.marker(center)
-        //   .setIcon(markerIconYellowLg)
-        //   .on('click', L.Util.bind(this.onMarkerClick, this, app))
-        //   .addTo(this.map);
-
-        this.centerMap(center);
+    // set icon on new marker
+    if (show) {
+      const marker = _.find(this.markers, { dispositionId: app.tantalisID });
+      if (marker) {
+        this.currentMarker = marker;
+        marker.setIcon(markerIconYellowLg);
+        this.centerMap(marker.getLatLng());
       }
     }
-  }
-
-  private onMarkerClick(...args: any[]) {
-    const app = args[0] as Application;
-    const marker = args[1].target as L.Marker;
-
-    this.currentApp = app; // update selected item in app list
-    // marker.setIcon(markerIconYellowLg);
-    this.centerMap(marker.getLatLng());
   }
 
   /**
