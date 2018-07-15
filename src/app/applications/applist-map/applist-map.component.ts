@@ -1,5 +1,6 @@
 import { Component, OnInit, OnChanges, OnDestroy, Input, ViewChild, SimpleChanges } from '@angular/core';
 import { Application } from 'app/models/application';
+import { ApplicationService } from 'app/services/application.service';
 import { ConfigService } from 'app/services/config.service';
 import { Subject } from 'rxjs/Subject';
 import 'leaflet.markercluster';
@@ -59,11 +60,12 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
   private ngUnsubscribe: Subject<boolean> = new Subject<boolean>();
 
   readonly defaultBounds = L.latLngBounds([48, -139], [60, -114]); // all of BC
-  // for profiling
-  private drawMapStart = 0;
-  private animationStart = 0;
+
+  // private drawMapStart = 0; // for profiling
+  // private animationStart = 0; // for profiling
 
   constructor(
+    public applicationService: ApplicationService,
     public configService: ConfigService
   ) { }
 
@@ -127,14 +129,14 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
       noWrap: true
     });
 
-    let tileStart = 0;
-    World_Imagery.on('loading', function () {
-      tileStart = (new Date()).getTime();
-    }, this);
-    World_Imagery.on('load', function () {
-      const delta = (new Date()).getTime() - tileStart;
-      // console.log('tile layer loaded in', delta, 'ms');
-    }, this);
+    // let tileStart = 0;
+    // World_Topo_Map.on('loading', function () {
+    //   tileStart = (new Date()).getTime();
+    // }, this);
+    // World_Topo_Map.on('load', function () {
+    //   const delta = (new Date()).getTime() - tileStart;
+    //   console.log('tile layer loaded in', delta, 'ms');
+    // }, this);
 
     this.map = L.map('map', {
       zoomControl: false,
@@ -161,15 +163,14 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
         this.isUser = false;
         this.setVisibleDebounced();
       }
-      // assume animation starts when map changes end
-      this.animationStart = (new Date()).getTime();
+      // this.animationStart = (new Date()).getTime(); // assume animation starts when map changes end
     }, this);
 
-    const mapStart = (new Date()).getTime();
-    this.map.on('load', function () {
-      const delta = (new Date()).getTime() - mapStart;
-      // console.log('map loaded in', delta, 'ms');
-    }, this);
+    // const mapStart = (new Date()).getTime();
+    // this.map.on('load', function () {
+    //   const delta = (new Date()).getTime() - mapStart;
+    //   console.log('map loaded in', delta, 'ms');
+    // }, this);
 
     // add reset view control
     this.map.addControl(new resetViewControl());
@@ -200,24 +201,26 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
       this.configService.baseLayerName = e.name;
     }, this);
 
-    // TODO: restore map bounds / center / zoom ?
+    // TODO: restore map bounds or view ?
+    // this.fitGlobalBounds(this.configService.mapBounds);
+    // this.map.setView(this.configService.mapCenter, this.configService.mapZoom);
 
     // add scale control
     L.control.scale({ position: 'bottomright' }).addTo(this.map);
 
-    this.markerClusterGroup.on('animationend', () => {
-      const delta = (new Date()).getTime() - this.animationStart;
-      // console.log('cluster animation took', delta, 'ms');
-    }, this);
+    // this.markerClusterGroup.on('animationend', () => {
+    //   const delta = (new Date()).getTime() - this.animationStart;
+    //   console.log('cluster animation took', delta, 'ms');
+    // }, this);
   }
 
   public ngOnChanges(changes: SimpleChanges) {
-    if (!changes.allApps.firstChange && changes.allApps.currentValue) {
-      // console.log('map: got changed apps from applications');
-
-      this.gotChanges = true;
-
-      // NB: don't need to draw map here -- event handler from filters will do it
+    if (changes.allApps) {
+      if (!changes.allApps.firstChange && changes.allApps.currentValue) {
+        console.log('map: got changed allApps from applications');
+        this.gotChanges = true;
+        // NB: don't need to draw map here -- event handler from filters will do it
+      }
     }
   }
 
@@ -241,10 +244,10 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
     // console.log('setting visible');
     const bounds = this.map.getBounds();
 
-    // central place to save map bounds / center /zoom
-    this.configService.mapBounds = bounds;
-    this.configService.mapCenter = this.map.getCenter();
-    this.configService.mapZoom = this.map.getZoom();
+    // TODO: central place to save map bounds / view ?
+    // this.configService.mapBounds = bounds;
+    // this.configService.mapCenter = this.map.getCenter();
+    // this.configService.mapZoom = this.map.getZoom();
 
     for (const fg of this.fgList) {
       const fgBounds = fg.getBounds();
@@ -270,8 +273,6 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
         if (app) { app.isVisible = false; }
       }
     }
-
-    // NB: change detection will update all components bound to apps list
   }
 
   private fitGlobalBounds(globalBounds: L.LatLngBounds) {
@@ -302,10 +303,10 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
     this.fitGlobalBounds(globalFG.getBounds());
   }
 
-  private _onLayerAdd() {
-    const delta = (new Date()).getTime() - this.drawMapStart;
-    // console.log('cluster layer added in', delta, 'ms');
-  }
+  // private _onLayerAdd() {
+  //   const delta = (new Date()).getTime() - this.drawMapStart;
+  //   console.log('cluster layer added in', delta, 'ms');
+  // }
 
   /**
    * Called when list of apps changes.
@@ -313,11 +314,11 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
   private drawMap() {
     // console.log('drawing map');
 
-    this.drawMapStart = (new Date()).getTime();
-    if (this.gotChanges) {
-      this.markerClusterGroup.off('layeradd', this._onLayerAdd, this);
-      this.markerClusterGroup.on('layeradd', this._onLayerAdd, this);
-    }
+    // this.drawMapStart = (new Date()).getTime();
+    // if (this.gotChanges) {
+    //   this.markerClusterGroup.off('layeradd', this._onLayerAdd, this);
+    //   this.markerClusterGroup.on('layeradd', this._onLayerAdd, this);
+    // }
 
     const globalFG = L.featureGroup();
 
@@ -339,55 +340,56 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
       const appFG = L.featureGroup(); // layers for current app
       appFG.dispositionId = app.tantalisID;
 
-      // draw features for this app
-      app.features.forEach(f => {
-        const feature = JSON.parse(JSON.stringify(f));
-        // needs to be valid GeoJSON
-        delete f.geometry_name;
-        const featureObj: GeoJSON.Feature<any> = feature;
-        const layer = L.geoJSON(featureObj, {
-          filter: function (geoJsonFeature) {
-            return true; // FUTURE: make this feature invisible (not shown on map), if needed
-          }
-        });
-        // ref: https://leafletjs.com/reference-1.3.0.html#popup
-        const popupOptions = {
-          maxWidth: 360, // worst case (Pixel 2)
-          className: '', // FUTURE: for better styling control, if needed
-          autoPanPadding: L.point(40, 40)
-        };
-        const htmlContent = '<h3>' + featureObj.properties.TENURE_TYPE
-          + '<br />'
-          + featureObj.properties.TENURE_SUBTYPE + '</h3>'
-          + '<strong>Shape: </strong>' + featureObj.properties.INTRID_SID
-          + '<br />'
-          + '<strong>Disposition Transaction ID: </strong>' + featureObj.properties.DISPOSITION_TRANSACTION_SID
-          + '<br />'
-          + '<strong>Purpose: </strong>' + featureObj.properties.TENURE_PURPOSE
-          + '<br />'
-          + '<strong>Sub Purpose: </strong>' + featureObj.properties.TENURE_SUBPURPOSE
-          + '<br />'
-          + '<strong>Stage: </strong>' + featureObj.properties.TENURE_STAGE
-          + '<br />'
-          + '<strong>Status: </strong>' + featureObj.properties.TENURE_STATUS
-          + '<br />'
-          + '<strong>Hectares: </strong>' + featureObj.properties.TENURE_AREA_IN_HECTARES
-          + '<br />'
-          + '<br />'
-          + '<strong>Legal Description: </strong>' + featureObj.properties.TENURE_LEGAL_DESCRIPTION;
-        const popup = L.popup(popupOptions).setContent(htmlContent);
-        layer.bindPopup(popup);
-        layer.addTo(appFG);
-      });
-      this.fgList.push(appFG); // save to list
-      if (this.configService.doDrawShapes) { appFG.addTo(this.map); } // add this FG to map
-      appFG.addTo(globalFG); // for bounds
-      // appFG.on('click', L.Util.bind(this._onFeatureGroupClick, this, app)); // FUTURE: for FG action, if needed
+      // // draw features for this app
+      // app.features.forEach(f => {
+      //   const feature = JSON.parse(JSON.stringify(f));
+      //   // needs to be valid GeoJSON
+      //   delete f.geometry_name;
+      //   const featureObj: GeoJSON.Feature<any> = feature;
+      //   const layer = L.geoJSON(featureObj, {
+      //     filter: function (geoJsonFeature) {
+      //       return true; // FUTURE: make this feature invisible (not shown on map), if needed
+      //     }
+      //   });
+      //   // ref: https://leafletjs.com/reference-1.3.0.html#popup
+      //   const popupOptions = {
+      //     maxWidth: 360, // worst case (Pixel 2)
+      //     className: '', // FUTURE: for better styling control, if needed
+      //     autoPanPadding: L.point(40, 40)
+      //   };
+      //   const htmlContent = '<h3>' + featureObj.properties.TENURE_TYPE
+      //     + '<br />'
+      //     + featureObj.properties.TENURE_SUBTYPE + '</h3>'
+      //     + '<strong>Shape: </strong>' + featureObj.properties.INTRID_SID
+      //     + '<br />'
+      //     + '<strong>Disposition Transaction ID: </strong>' + featureObj.properties.DISPOSITION_TRANSACTION_SID
+      //     + '<br />'
+      //     + '<strong>Purpose: </strong>' + featureObj.properties.TENURE_PURPOSE
+      //     + '<br />'
+      //     + '<strong>Sub Purpose: </strong>' + featureObj.properties.TENURE_SUBPURPOSE
+      //     + '<br />'
+      //     + '<strong>Stage: </strong>' + featureObj.properties.TENURE_STAGE
+      //     + '<br />'
+      //     + '<strong>Status: </strong>' + featureObj.properties.TENURE_STATUS
+      //     + '<br />'
+      //     + '<strong>Hectares: </strong>' + featureObj.properties.TENURE_AREA_IN_HECTARES
+      //     + '<br />'
+      //     + '<br />'
+      //     + '<strong>Legal Description: </strong>' + featureObj.properties.TENURE_LEGAL_DESCRIPTION;
+      //   const popup = L.popup(popupOptions).setContent(htmlContent);
+      //   layer.bindPopup(popup);
+      //   layer.addTo(appFG);
+      // });
+      // this.fgList.push(appFG); // save to list
+      // if (this.configService.doDrawShapes) { appFG.addTo(this.map); } // add this FG to map
+      // appFG.addTo(globalFG); // for bounds
+      // // appFG.on('click', L.Util.bind(this._onFeatureGroupClick, this, app)); // FUTURE: for FG action, if needed
 
       // add marker
-      const appBounds = appFG.getBounds();
-      if (appBounds && appBounds.isValid()) {
-        const marker = L.marker(appBounds.getCenter(), { title: app.client })
+      if (app.latitude !== 0 && app.longitude !== 0) {
+        const title = `${app.client}\n${app.purpose} / ${app.subpurpose}\n${this.applicationService.getStatusString(app.status)}\n`
+        + `${this.applicationService.regions[app.region]}`;
+        const marker = L.marker(L.latLng(app.latitude, app.longitude), { title: title })
           .setIcon(markerIconYellow)
           .on('click', L.Util.bind(this._onMarkerClick, this, app));
         marker.dispositionId = app.tantalisID;
@@ -406,7 +408,7 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
     // let n = 0;
     // this.map.eachLayer(() => n++);
     // console.log('# map layers =', n);
-    // console.log('# marker layers =', this.markerClusterGroup.getLayers().length);
+    console.log('# marker layers =', this.markerClusterGroup.getLayers().length);
   }
 
   private _onFeatureGroupClick(...args: any[]) {

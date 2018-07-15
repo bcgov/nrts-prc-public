@@ -28,17 +28,14 @@ export class ApplicationsComponent implements OnInit, OnDestroy {
     this.applicationService.getAll()
       .takeUntil(this.ngUnsubscribe)
       .subscribe(applications => {
-        // sort by newest first
-        this.allApps = applications.sort((a: Application, b: Application) => {
-          return (a.publishDate < b.publishDate) ? 1 : -1;
-        });
-        // console.log('getAll() took', (new Date()).getTime() - start, 'ms');
+        this.allApps = applications;
       }, error => {
         console.log(error);
         alert('Uh-oh, couldn\'t load applications');
         // applications not found --> navigate back to home
         this.router.navigate(['/']);
       }, () => {
+        console.log('getAll() took', (new Date()).getTime() - start, 'ms');
         this.loading = false;
       });
   }

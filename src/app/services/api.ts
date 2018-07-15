@@ -51,14 +51,14 @@ export class ApiService {
         break;
 
       case 'nrts-prc-scale.pathfinder.gov.bc.ca':
-        // Demo
+        // Scale
         this.apiPath = 'https://nrts-prc-scale.pathfinder.gov.bc.ca/api/public';
         this.adminUrl = 'https://nrts-prc-scale.pathfinder.gov.bc.ca/admin/';
         this.env = 'scale';
         break;
 
       case 'nrts-prc-beta.pathfinder.gov.bc.ca':
-        // Demo
+        // Beta
         this.apiPath = 'https://nrts-prc-beta.pathfinder.gov.bc.ca/api/public';
         this.adminUrl = 'https://nrts-prc-beta.pathfinder.gov.bc.ca/admin/';
         this.env = 'beta';
@@ -81,7 +81,9 @@ export class ApiService {
   //
   // Applications
   //
-  getApplications() {
+  // TODO: NEED TO PASS FILTERS IN HERE
+  getApplications(regionFilters: object = null, cpStatusFilters: object = null, appStatusFilters: object = null,
+    applicantFilter: string = null, clFileFilter: string = null, dispIdFilter: string = null, purposeFilter: string = null) {
     const fields = [
       'agency',
       'cl_file',
@@ -96,9 +98,15 @@ export class ApiService {
       'name',
       'postID',
       'publishDate',
+      'purpose',
+      'region',
+      'status',
+      'subpurpose',
       'tantalisID'
     ];
-    let queryString = 'application?fields=';
+    console.log('regionFilters =', regionFilters, 'keys =', regionFilters ? Object.keys(regionFilters) : null);
+    // let queryString = 'application?region=SK&cp_status=OP&status=AC&client=abc&cl_file=123&tantalisID=456&purpose=xyz&fields=';
+    let queryString = 'application?cl_file=80&tantalisID=03&fields='; // TODO: NEED TO MAKE THIS WORK
     _.each(fields, function (f) {
       queryString += f + '|';
     });
@@ -122,6 +130,10 @@ export class ApiService {
       'name',
       'postID',
       'publishDate',
+      'purpose',
+      'region',
+      'status',
+      'subpurpose',
       'tantalisID'
     ];
     let queryString = 'application/' + id + '?fields=';
