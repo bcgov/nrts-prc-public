@@ -16,7 +16,9 @@ export class ApiService {
   public adminUrl: string;
   public env: 'local' | 'dev' | 'test' | 'demo' | 'scale' | 'beta' | 'prod';
 
-  constructor(private http: Http) {
+  constructor(
+    private http: Http
+  ) {
     // const currentUser = JSON.parse(window.localStorage.getItem('currentUser'));
     // this.token = currentUser && currentUser.token;
     this.isMS = window.navigator.msSaveOrOpenBlob ? true : false;
@@ -72,7 +74,7 @@ export class ApiService {
     };
   }
 
-  public handleError(error: any): ErrorObservable {
+  handleError(error: any): ErrorObservable {
     const reason = error.message ? error.message : (error.status ? `${error.status} - ${error.statusText}` : 'Server error');
     console.log('API error =', reason);
     return Observable.throw(error);
@@ -81,9 +83,8 @@ export class ApiService {
   //
   // Applications
   //
-  // TODO: NEED TO PASS FILTERS IN HERE
-  getApplications(regionFilters: object = null, cpStatusFilters: object = null, appStatusFilters: object = null,
-    applicantFilter: string = null, clFileFilter: string = null, dispIdFilter: string = null, purposeFilter: string = null) {
+  // TODO: add 'skip' and 'take' parameters
+  getApplications(regions: string[], cpStatuses: string[], appStatuses: string[], applicant: string, clFile: string, dispId: string, purpose: string) {
     const fields = [
       'agency',
       'cl_file',
@@ -104,14 +105,17 @@ export class ApiService {
       'subpurpose',
       'tantalisID'
     ];
-    console.log('regionFilters =', regionFilters, 'keys =', regionFilters ? Object.keys(regionFilters) : null);
-    // let queryString = 'application?region=SK&cp_status=OP&status=AC&client=abc&cl_file=123&tantalisID=456&purpose=xyz&fields=';
-    let queryString = 'application?cl_file=80&tantalisID=03&fields='; // TODO: NEED TO MAKE THIS WORK
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    let queryString = 'application?';
+
+    if (regions.length > 0) { queryString += `regions=${this.buildValues(regions)}&`; }
+    if (cpStatuses.length > 0) { queryString += `cpStatuses=${this.buildValues(cpStatuses)}&`; }
+    if (appStatuses.length > 0) { queryString += `statuses=${this.buildValues(appStatuses)}&`; }
+    if (applicant) { queryString += `client=${applicant}&`; }
+    if (clFile) { queryString += `cl_file=${clFile}&`; }
+    if (dispId) { queryString += `tantalisID=${dispId}&`; }
+    if (purpose) { queryString += `purpose=${purpose}&`; }
+    queryString += `fields=${this.buildValues(fields)}`;
+
     return this.get(queryString);
   }
 
@@ -136,12 +140,7 @@ export class ApiService {
       'subpurpose',
       'tantalisID'
     ];
-    let queryString = 'application/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'application/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -154,12 +153,7 @@ export class ApiService {
       'code',
       'name'
     ];
-    let queryString = 'organization?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'organization?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -169,12 +163,7 @@ export class ApiService {
       'code',
       'name'
     ];
-    let queryString = 'organization/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'organization/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -189,12 +178,7 @@ export class ApiService {
       'name',
       'description'
     ];
-    let queryString = 'decision?_application=' + appId + '&fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'decision?_application=' + appId + '&fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -206,12 +190,7 @@ export class ApiService {
       'name',
       'description'
     ];
-    let queryString = 'decision/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'decision/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -227,12 +206,7 @@ export class ApiService {
       'description',
       'internal'
     ];
-    let queryString = 'commentperiod?isDeleted=false&_application=' + appId + '&fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'commentperiod?isDeleted=false&_application=' + appId + '&fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -245,12 +219,7 @@ export class ApiService {
       'description',
       'internal'
     ];
-    let queryString = 'commentperiod/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'commentperiod/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -268,12 +237,7 @@ export class ApiService {
       'dateAdded',
       'commentStatus'
     ];
-    let queryString = 'comment?isDeleted=false&_commentPeriod=' + periodId + '&fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'comment?isDeleted=false&_commentPeriod=' + periodId + '&fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -288,23 +252,16 @@ export class ApiService {
       'dateAdded',
       'commentStatus'
     ];
-    let queryString = 'comment/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'comment/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
   addComment(comment: Comment) {
-    const fields = ['comment', 'commentAuthor'];
-    let queryString = 'comment?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const fields = [
+      'comment',
+      'commentAuthor'
+    ];
+    const queryString = 'comment?fields=' + this.buildValues(fields);
     return this.post(queryString, comment);
   }
 
@@ -319,12 +276,7 @@ export class ApiService {
       'internalURL',
       'internalMime'
     ];
-    let queryString = 'document?isDeleted=false&_application=' + appId + '&fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'document?isDeleted=false&_application=' + appId + '&fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -336,12 +288,7 @@ export class ApiService {
       'internalURL',
       'internalMime'
     ];
-    let queryString = 'document?isDeleted=false&_comment=' + commentId + '&fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'document?isDeleted=false&_comment=' + commentId + '&fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -353,12 +300,7 @@ export class ApiService {
       'internalURL',
       'internalMime'
     ];
-    let queryString = 'document?isDeleted=false&_decision=' + decisionId + '&fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'document?isDeleted=false&_decision=' + decisionId + '&fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -374,12 +316,7 @@ export class ApiService {
       'documentFileName',
       'internalMime'
     ];
-    let queryString = 'document/?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'document/?fields=' + this.buildValues(fields);
     return this.post(queryString, formData, { reportProgress: true });
   }
 
@@ -392,34 +329,21 @@ export class ApiService {
   //
   getBCGWCrownLands(id: string) {
     const fields = ['name', 'isImported'];
-    let queryString = 'search/bcgw/crownLandsId/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'search/bcgw/crownLandsId/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
   getBCGWDispositionTransactionId(id: number) {
-    const fields = ['name'];
-    let queryString = 'search/bcgw/dispositionTransactionId/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const fields = [
+      'name'
+    ];
+    const queryString = 'search/bcgw/dispositionTransactionId/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
   getClientsInfoByDispositionId(id: number) {
     const fields = ['name'];
-    let queryString = 'search/bcgw/getClientsInfoByDispositionId/' + id + '?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const queryString = 'search/bcgw/getClientsInfoByDispositionId/' + id + '?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
@@ -427,19 +351,28 @@ export class ApiService {
   // Users
   //
   getAllUsers() {
-    const fields = ['displayName', 'username', 'firstName', 'lastName'];
-    let queryString = 'user?fields=';
-    _.each(fields, function (f) {
-      queryString += f + '|';
-    });
-    // Trim the last |
-    queryString = queryString.replace(/\|$/, '');
+    const fields = [
+      'displayName',
+      'username',
+      'firstName',
+      'lastName'
+    ];
+    const queryString = 'user?fields=' + this.buildValues(fields);
     return this.get(queryString);
   }
 
   //
-  // Private
+  // Local helpers
   //
+  private buildValues(collection: any[]): string {
+    let values = '';
+    _.each(collection, function (a) {
+      values += a + '|';
+    });
+    // trim the last |
+    return values.replace(/\|$/, '');
+  }
+
   private get(apiRoute: string, options?: object) {
     return this.http.get(`${this.apiPath}/${apiRoute}`, options || null);
   }

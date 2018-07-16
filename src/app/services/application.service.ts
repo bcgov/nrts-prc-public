@@ -10,7 +10,7 @@ import * as _ from 'lodash';
 import { Application } from 'app/models/application';
 import { ApiService } from './api';
 import { DocumentService } from './document.service';
-import { OrganizationService } from './organization.service';
+// import { OrganizationService } from './organization.service';
 import { CommentPeriodService } from './commentperiod.service';
 import { DecisionService } from './decision.service';
 import { SearchService } from './search.service';
@@ -51,7 +51,7 @@ export class ApplicationService {
   constructor(
     private api: ApiService,
     private documentService: DocumentService,
-    private organizationService: OrganizationService,
+    // private organizationService: OrganizationService,
     private commentPeriodService: CommentPeriodService,
     private decisionService: DecisionService,
     private searchService: SearchService
@@ -81,8 +81,18 @@ export class ApplicationService {
   }
 
   // get just the applications
-  getAll(): Observable<Application[]> {
-    return this.api.getApplications()
+  getAll(regionFilters: object = {}, cpStatusFilters: object = {}, appStatusFilters: object = {}, applicantFilter: string = null,
+    clFileFilter: string = null, dispIdFilter: string = null, purposeFilter: string = null): Observable<Application[]> {
+    const regions: Array<string> = [];
+    const cpStatuses: Array<string> = [];
+    const appStatuses: Array<string> = [];
+
+    // convert array-like objects to arrays
+    Object.keys(regionFilters).forEach(key => { if (regionFilters[key]) { regions.push(key); } });
+    Object.keys(cpStatusFilters).forEach(key => { if (cpStatusFilters[key]) { cpStatuses.push(key); } });
+    Object.keys(appStatusFilters).forEach(key => { if (appStatusFilters[key]) { appStatuses.push(key); } });
+
+    return this.api.getApplications(regions, cpStatuses, appStatuses, applicantFilter, clFileFilter, dispIdFilter, purposeFilter)
       .map(res => {
         const applications = res.text() ? res.json() : [];
         applications.forEach((application, i) => {

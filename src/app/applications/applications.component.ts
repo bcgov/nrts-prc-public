@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/takeUntil';
@@ -17,6 +17,15 @@ export class ApplicationsComponent implements OnInit, OnDestroy {
   public allApps: Array<Application> = [];
   private ngUnsubscribe: Subject<boolean> = new Subject<boolean>();
 
+  // TODO: get actual filters from filter component
+  private regionFilters: object = { /*VI: true*/ }; // array-like object
+  private cpStatusFilters: object = {}; // array-like object
+  private appStatusFilters: object = {}; // array-like object
+  private applicantFilter: string = null;
+  private clFileFilter: string = null;
+  private dispIdFilter: string = null;
+  private purposeFilter: string = null;
+
   constructor(
     private router: Router,
     private applicationService: ApplicationService
@@ -25,7 +34,7 @@ export class ApplicationsComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // get all apps
     const start = (new Date()).getTime();
-    this.applicationService.getAll()
+    this.applicationService.getAll(this.regionFilters, this.cpStatusFilters, this.appStatusFilters, this.applicantFilter, this.clFileFilter, this.dispIdFilter, this.purposeFilter)
       .takeUntil(this.ngUnsubscribe)
       .subscribe(applications => {
         this.allApps = applications;

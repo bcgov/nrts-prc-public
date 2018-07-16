@@ -2,27 +2,27 @@
 
   <!-- Application Filters Component -->
   <app-applist-filters class="app-filters" #appfilters
-    [allApps]="allApps" 
+    [allApps]="allApps"
     (updateMatching)="onUpdateMatching($event)">
   </app-applist-filters>
 
   <!-- Main Stuff -->
   <div class="list-map-container">
-    
+
     <div class="list-container">
-      
+
       <!-- Application List Component -->
-      <app-applist-list class="app-list" #applist 
-        [allApps]="allApps" 
-        (setCurrentApp)="highlightApplication($event, true)" 
+      <app-applist-list class="app-list" #applist
+        [allApps]="allApps"
+        (setCurrentApp)="highlightApplication($event, true)"
         (unsetCurrentApp)="highlightApplication($event, false)"
-        (updateResultsChange)="onUpdateResultsChange()" 
+        (updateResultsChange)="onUpdateResultsChange()"
         (drawShapesChange)="onDrawShapesChange()"
         (clusterAppsChange)="onClusterAppsChange()">
       </app-applist-list>
 
       <!-- List Container Toggle -->
-      <button class="toggle-list-btn btn" title="Show/hide list of applications" type="button" 
+      <button class="toggle-list-btn btn" title="Show/hide list of applications" type="button"
         (click)="toggleAppList();$event.stopPropagation();" *ngIf="gotChanges" aria-controls="applist-list">
         <i class="material-icons">{{configService.isApplistListVisible ? 'keyboard_arrow_left':'keyboard_arrow_right'}}</i>
       </button>
