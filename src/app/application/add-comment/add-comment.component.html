@@ -103,7 +103,7 @@
           <!-- Email is required if Phone isn't entered (or is invalid) -->
           <div class="form-group col-lg-6" [ngClass]="(!phone.value?.length || phone.invalid) ? 'required' : 'optional'">
             <label for="email" class="control-label">Email</label>
-            <input type="email" class="form-control" id="email" name="email" placeholder="first.last@email.com" [required]="!phone.value?.length || phone.invalid"
+            <input type="email" class="form-control" id="email" name="email" placeholder="E.g., first.last@email.com" [required]="!phone.value?.length || phone.invalid"
               [(ngModel)]="comment.commentAuthor.internal.email" #email="ngModel" pattern="[a-zA-Z0-9.-_]{1,}@[a-zA-Z.-]{2,}[.]{1}[a-zA-Z]{2,}" />
             <div *ngIf="email.invalid && (email.dirty || email.touched)" class="alert alert-danger">
               <div *ngIf="email.errors?.required">Email or Phone is required</div>
@@ -114,8 +114,8 @@
           <!-- Phone is required if Email isn't entered (or is invalid) -->
           <div class="form-group col-lg-6" [ngClass]="(!email.value?.length || email.invalid) ? 'required' : 'optional'">
             <label for="phone" class="control-label">Phone</label>
-            <input type="tel" class="form-control" id="phone" name="phone" placeholder="xxx-xxx-xxxx" [required]="!email.value?.length || email.invalid"
-              [(ngModel)]="comment.commentAuthor.internal.phone" #phone="ngModel" pattern="[0-9]{3}[- \.][0-9]{3}[- \.][0-9]{4}" />
+            <input type="tel" class="form-control" id="phone" name="phone" placeholder="E.g., 16137451576" [required]="!email.value?.length || email.invalid"
+              [(ngModel)]="comment.commentAuthor.internal.phone" #phone="ngModel" pattern="^\+?[1-9]\d{1,14}$" />
             <div *ngIf="phone.invalid && (phone.dirty || phone.touched)" class="alert alert-danger">
               <div *ngIf="phone.errors?.required">Email or Phone is required</div>
               <div *ngIf="phone.invalid">Phone is invalid</div>

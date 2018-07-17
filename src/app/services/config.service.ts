@@ -13,7 +13,7 @@ export class ConfigService {
   private _isApplistListVisible = false;
   private _isApplistFiltersVisible = false;
   private _doUpdateResults = true;
-  private _doDrawShapes = true;
+  private _doDrawShapes = false;
   private _doClusterApps = true;
 
   // TODO: store these in URL instead
