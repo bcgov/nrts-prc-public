@@ -14,7 +14,7 @@ export class ApiService {
   public isMS: boolean; // IE, Edge, etc
   public apiPath: string;
   public adminUrl: string;
-  public env: 'local' | 'dev' | 'test' | 'demo' | 'scale' | 'prod';
+  public env: 'local' | 'dev' | 'test' | 'demo' | 'scale' | 'beta' | 'prod';
 
   constructor(private http: Http) {
     // const currentUser = JSON.parse(window.localStorage.getItem('currentUser'));
@@ -57,6 +57,13 @@ export class ApiService {
         this.env = 'scale';
         break;
 
+      case 'nrts-prc-beta.pathfinder.gov.bc.ca':
+        // Demo
+        this.apiPath = 'https://nrts-prc-beta.pathfinder.gov.bc.ca/api/public';
+        this.adminUrl = 'https://nrts-prc-beta.pathfinder.gov.bc.ca/admin/';
+        this.env = 'beta';
+        break;
+
       default:
         // Prod
         this.apiPath = 'https://comment.nrs.gov.bc.ca/api/public';
@@ -89,7 +96,6 @@ export class ApiService {
       'name',
       'postID',
       'publishDate',
-      'region',
       'tantalisID'
     ];
     let queryString = 'application?fields=';
@@ -116,7 +122,6 @@ export class ApiService {
       'name',
       'postID',
       'publishDate',
-      'region',
       'tantalisID'
     ];
     let queryString = 'application/' + id + '?fields=';

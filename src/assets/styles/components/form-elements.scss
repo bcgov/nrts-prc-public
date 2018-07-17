@@ -25,6 +25,14 @@
 }
 
 
+// Fieldset/Legend
+legend {
+  float: left; // position legend inside the bounding box of the fieldset
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+
 // Form Items
 .form-control {
   border-color: $fc-border-color;
@@ -71,6 +79,14 @@ select {
   }
 }
 
+// Number
+input[type="number"] {
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
 
 // Textarea
 textarea {

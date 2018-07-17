@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnChanges, OnDestroy, Input, Output, EventEmitter, SimpleChanges, ElementRef } from '@angular/core';
 import * as L from 'leaflet';
 import * as _ from 'lodash';
 
@@ -15,23 +15,26 @@ import { ConfigService } from 'app/services/config.service';
 export class ApplistListComponent implements OnInit, OnChanges, OnDestroy {
   // NB: this component is bound to the same list of apps as the other components
   @Input() allApps: Array<Application> = []; // from map component
-  @Input() currentApp: Application = null; // from map component
   @Output() setCurrentApp = new EventEmitter(); // to map component
   @Output() unsetCurrentApp = new EventEmitter(); // to map component
   @Output() updateResultsChange = new EventEmitter(); // to map component
+  @Output() drawShapesChange = new EventEmitter(); // to map component
+  @Output() clusterAppsChange = new EventEmitter(); // to map component
 
-  public isListCollapsed: boolean;
+  private currentApp: Application = null; // for selecting app in list
   public gotChanges = false;
-  public doUpdateResults = true; // bound to checkbox - initial state
 
   constructor(
     private commentPeriodService: CommentPeriodService, // used in template
-    private configService: ConfigService
+    private configService: ConfigService, // used in template
+    private elementRef: ElementRef
   ) { }
 
-  public ngOnInit() {
-    this.isListCollapsed = !this.configService.isApplistListVisible;
+  get clientWidth(): number {
+    return this.elementRef.nativeElement.childNodes[0].clientWidth; // div#applist-list.app-list__container
+  }
 
+  public ngOnInit() {
     // prevent underlying map actions for these events
     const element = <HTMLElement>document.getElementById('applist-list');
     L.DomEvent.disableClickPropagation(element); // includes double-click
@@ -39,14 +42,8 @@ export class ApplistListComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   public ngOnChanges(changes: SimpleChanges) {
-    if (changes.currentApp && !changes.currentApp.firstChange && changes.currentApp.currentValue) {
-      console.log('got currentApp change');
-      // nothing to do
-    } else if (changes.allApps && !changes.allApps.firstChange && changes.allApps.currentValue) {
+    if (changes.allApps && !changes.allApps.firstChange && changes.allApps.currentValue) {
       this.gotChanges = true;
-
-      // sync initial state to map
-      this.updateResultsChange.emit(this.doUpdateResults);
     }
   }
 
@@ -56,7 +53,7 @@ export class ApplistListComponent implements OnInit, OnChanges, OnDestroy {
     return (item === this.currentApp);
   }
 
-  private toggleCurrentApp(item: Application) {
+  public toggleCurrentApp(item: Application) {
     const index = _.findIndex(this.allApps, { _id: item._id });
     if (index >= 0) {
       // this.allApps.splice(index, 1, item); // NOT NEEDED
@@ -73,9 +70,5 @@ export class ApplistListComponent implements OnInit, OnChanges, OnDestroy {
 
   public matchesVisibleCount(apps: Application[]): number {
     return apps.filter(a => a.isMatches && a.isVisible).length;
-  }
-
-  public onShowHideClick() {
-    this.configService.isApplistListVisible = !this.isListCollapsed;
   }
 }
