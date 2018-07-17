@@ -3,8 +3,8 @@ import { Application } from 'app/models/application';
 import { ApplicationService } from 'app/services/application.service';
 import { ConfigService } from 'app/services/config.service';
 import { Subject } from 'rxjs/Subject';
+import 'leaflet';
 import 'leaflet.markercluster';
-import * as L from 'leaflet';
 import * as _ from 'lodash';
 
 declare module 'leaflet' {
@@ -15,6 +15,8 @@ declare module 'leaflet' {
     dispositionId: number;
   }
 }
+
+const L = window['L'];
 
 const markerIconYellow = L.icon({
   iconUrl: 'assets/images/marker-icon-yellow.svg',
