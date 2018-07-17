@@ -11,7 +11,7 @@ import { Search, SearchTerms } from 'app/models/search';
 import { Organization } from 'app/models/organization';
 import { ApplicationService } from 'app/services/application.service';
 import { DocumentService } from 'app/services/document.service';
-import { OrganizationService } from 'app/services/organization.service';
+// import { OrganizationService } from 'app/services/organization.service';
 
 @Component({
   selector: 'app-search',
@@ -53,7 +53,7 @@ export class SearchComponent implements OnInit {
     calender: NgbCalendar,
     private documentService: DocumentService,
     private applicationService: ApplicationService,
-    private organizationService: OrganizationService,
+    // private organizationService: OrganizationService,
     private _changeDetectionRef: ChangeDetectorRef,
     private router: Router,
     private route: ActivatedRoute,

@@ -17,7 +17,7 @@ export class ConfigService {
   private _doClusterApps = true;
 
   // TODO: store these in URL instead
-  private _baseLayerName = 'World Imagery'; // NB: must match a valid base layer name
+  private _baseLayerName = 'World Topographic'; // NB: must match a valid base layer name
   private _mapBounds: L.LatLngBounds = null;
   private _mapCenter: L.LatLng = null;
   private _mapZoom: number = null;

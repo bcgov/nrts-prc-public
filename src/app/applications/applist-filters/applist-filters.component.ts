@@ -155,6 +155,7 @@ export class ApplistFiltersComponent implements OnInit, OnChanges, OnDestroy {
                 this.internalResetAllFilters(false);
 
                 // apply filters
+                // TODO: may not need to this here -- we could be event driven (using ngOnChanges)
                 this.internalApplyAllFilters(false);
             });
     }
@@ -239,14 +240,14 @@ export class ApplistFiltersComponent implements OnInit, OnChanges, OnDestroy {
         // check for matching region
         retVal = retVal && (
             allRegions ||
-            (this.regionFilters[this.applicationService.CARIBOO] && (item.region === this.applicationService.regions[this.applicationService.CARIBOO])) ||
-            (this.regionFilters[this.applicationService.KOOTENAY] && (item.region === this.applicationService.regions[this.applicationService.KOOTENAY])) ||
-            (this.regionFilters[this.applicationService.LOWER_MAINLAND] && (item.region === this.applicationService.regions[this.applicationService.LOWER_MAINLAND])) ||
-            (this.regionFilters[this.applicationService.OMENICA] && (item.region === this.applicationService.regions[this.applicationService.OMENICA])) ||
-            (this.regionFilters[this.applicationService.PEACE] && (item.region === this.applicationService.regions[this.applicationService.PEACE])) ||
-            (this.regionFilters[this.applicationService.SKEENA] && (item.region === this.applicationService.regions[this.applicationService.SKEENA])) ||
-            (this.regionFilters[this.applicationService.SOUTHERN_INTERIOR] && (item.region === this.applicationService.regions[this.applicationService.SOUTHERN_INTERIOR])) ||
-            (this.regionFilters[this.applicationService.VANCOUVER_ISLAND] && (item.region === this.applicationService.regions[this.applicationService.VANCOUVER_ISLAND]))
+            (this.regionFilters[this.applicationService.CARIBOO] && (item.region === this.applicationService.CARIBOO)) ||
+            (this.regionFilters[this.applicationService.KOOTENAY] && (item.region === this.applicationService.KOOTENAY)) ||
+            (this.regionFilters[this.applicationService.LOWER_MAINLAND] && (item.region === this.applicationService.LOWER_MAINLAND)) ||
+            (this.regionFilters[this.applicationService.OMENICA] && (item.region === this.applicationService.OMENICA)) ||
+            (this.regionFilters[this.applicationService.PEACE] && (item.region === this.applicationService.PEACE)) ||
+            (this.regionFilters[this.applicationService.SKEENA] && (item.region === this.applicationService.SKEENA)) ||
+            (this.regionFilters[this.applicationService.SOUTHERN_INTERIOR] && (item.region === this.applicationService.SOUTHERN_INTERIOR)) ||
+            (this.regionFilters[this.applicationService.VANCOUVER_ISLAND] && (item.region === this.applicationService.VANCOUVER_ISLAND))
         );
 
         // if no option is selected, match all
