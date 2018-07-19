@@ -83,6 +83,11 @@ export class ApiService {
   //
   // Applications
   //
+  getApplicationsNoFields() {
+    let queryString = 'application?pageNum=0&pageSize=1000000';
+    return this.get(queryString);
+  }
+
   // TODO: add 'skip' and 'take' parameters
   getApplications(regions: string[], cpStatuses: string[], appStatuses: string[], applicant: string, clFile: string, dispId: string, purpose: string) {
     const fields = [
@@ -105,15 +110,15 @@ export class ApiService {
       'subpurpose',
       'tantalisID'
     ];
-    let queryString = 'application?';
 
+    let queryString = 'application?pageNum=0&pageSize=1000000&';
     if (regions.length > 0) { queryString += `regions=${this.buildValues(regions)}&`; }
     if (cpStatuses.length > 0) { queryString += `cpStatuses=${this.buildValues(cpStatuses)}&`; }
     if (appStatuses.length > 0) { queryString += `statuses=${this.buildValues(appStatuses)}&`; }
-    if (applicant) { queryString += `client=${applicant}&`; }
-    if (clFile) { queryString += `cl_file=${clFile}&`; }
-    if (dispId) { queryString += `tantalisID=${dispId}&`; }
-    if (purpose) { queryString += `purpose=${purpose}&`; }
+    if (applicant !== null) { queryString += `client=${applicant}&`; }
+    if (clFile !== null) { queryString += `cl_file=${clFile}&`; }
+    if (dispId !== null) { queryString += `tantalisID=${dispId}&`; }
+    if (purpose !== null) { queryString += `purpose=${purpose}&`; }
     queryString += `fields=${this.buildValues(fields)}`;
 
     return this.get(queryString);
