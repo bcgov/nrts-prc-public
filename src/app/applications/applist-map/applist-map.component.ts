@@ -219,7 +219,6 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
   public ngOnChanges(changes: SimpleChanges) {
     if (changes.allApps) {
       if (!changes.allApps.firstChange && changes.allApps.currentValue) {
-        console.log('map: got changed allApps from applications');
         this.gotChanges = true;
         // NB: don't need to draw map here -- event handler from filters will do it
       }
@@ -390,7 +389,7 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
       // add marker
       if (app.latitude !== 0 && app.longitude !== 0) {
         const title = `${app.client}\n${app.purpose} / ${app.subpurpose}\n${this.applicationService.getStatusString(app.status)}\n`
-        + `${this.applicationService.regions[app.region]}`;
+          + `${this.applicationService.regions[app.region]}`;
         const marker = L.marker(L.latLng(app.latitude, app.longitude), { title: title })
           .setIcon(markerIconYellow)
           .on('click', L.Util.bind(this._onMarkerClick, this, app));
