@@ -17,6 +17,9 @@ export class ApplicationsComponent implements OnInit, OnDestroy {
   public allApps: Array<Application> = [];
   private ngUnsubscribe: Subject<boolean> = new Subject<boolean>();
 
+  // TODO: iterate page by page, 500 apps at a time
+  private pageNum: number = 0;
+  private pageSize: number = 1000000;
   // TODO: get actual filters from filter component
   private regionFilters: object = { /*VI: true*/ }; // array-like object
   private cpStatusFilters: object = {}; // array-like object
@@ -34,7 +37,8 @@ export class ApplicationsComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // get all apps
     const start = (new Date()).getTime();
-    this.applicationService.getAll(this.regionFilters, this.cpStatusFilters, this.appStatusFilters, this.applicantFilter, this.clFileFilter, this.dispIdFilter, this.purposeFilter)
+    this.applicationService.getAll(this.pageNum, this.pageSize, this.regionFilters, this.cpStatusFilters, this.appStatusFilters,
+      this.applicantFilter, this.clFileFilter, this.dispIdFilter, this.purposeFilter)
       .takeUntil(this.ngUnsubscribe)
       .subscribe(applications => {
         this.allApps = applications;
