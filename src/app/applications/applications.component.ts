@@ -1,10 +1,14 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
 import { Subject } from 'rxjs/Subject';
 import 'rxjs/add/operator/takeUntil';
+// import 'rxjs/add/operator/mergeMap';
+import * as _ from 'lodash';
 
 import { Application } from 'app/models/application';
 import { ApplicationService } from 'app/services/application.service';
+
+const NUM_APPS = 1414; // TODO: get from db
+const PAGE_SIZE = 500;
 
 @Component({
   selector: 'app-applications',
@@ -13,13 +17,9 @@ import { ApplicationService } from 'app/services/application.service';
 })
 
 export class ApplicationsComponent implements OnInit, OnDestroy {
-  public loading = true; // for spinner
   public allApps: Array<Application> = [];
   private ngUnsubscribe: Subject<boolean> = new Subject<boolean>();
 
-  // TODO: iterate page by page, 500 apps at a time
-  private pageNum: number = 0;
-  private pageSize: number = 1000000;
   // TODO: get actual filters from filter component
   private regionFilters: object = { /*VI: true*/ }; // array-like object
   private cpStatusFilters: object = {}; // array-like object
@@ -30,26 +30,43 @@ export class ApplicationsComponent implements OnInit, OnDestroy {
   private purposeFilter: string = null;
 
   constructor(
-    private router: Router,
     private applicationService: ApplicationService
   ) { }
 
   ngOnInit() {
-    // get all apps
-    const start = (new Date()).getTime();
-    this.applicationService.getAll(this.pageNum, this.pageSize, this.regionFilters, this.cpStatusFilters, this.appStatusFilters,
+    // get all apps, one page at a time
+    // (all 1414 at once => ~4.5 seconds)
+    // (3 pages of 500 => ~3.5 seconds -- and it looks better!)
+    this.getPageOfApps(0, PAGE_SIZE);
+
+    // this way works but isn't faster and doesn't scale
+    // const self = this;
+    // this.applicationService.getAll(0, PAGE_SIZE)
+    //   .mergeMap(applications => {
+    //     self.allApps = _.concat(self.allApps, applications);
+    //     return self.applicationService.getAll(1, PAGE_SIZE);
+    //   })
+    //   .mergeMap(applications => {
+    //     self.allApps = _.concat(self.allApps, applications);
+    //     return self.applicationService.getAll(2, PAGE_SIZE);
+    //   })
+    //   .subscribe(applications => {
+    //     self.allApps = _.concat(self.allApps, applications);
+    //   });
+  }
+
+  // NB: recursive function
+  private getPageOfApps(pageNum: number, pageSize: number) {
+    this.applicationService.getAll(pageNum, pageSize, this.regionFilters, this.cpStatusFilters, this.appStatusFilters,
       this.applicantFilter, this.clFileFilter, this.dispIdFilter, this.purposeFilter)
       .takeUntil(this.ngUnsubscribe)
       .subscribe(applications => {
-        this.allApps = applications;
+        this.allApps = _.concat(this.allApps, applications);
+        if (++pageNum < Math.ceil(NUM_APPS / PAGE_SIZE)) {
+          this.getPageOfApps(pageNum, PAGE_SIZE);
+        }
       }, error => {
         console.log(error);
-        alert('Uh-oh, couldn\'t load applications');
-        // applications not found --> navigate back to home
-        this.router.navigate(['/']);
-      }, () => {
-        console.log('getAll() took', (new Date()).getTime() - start, 'ms');
-        this.loading = false;
       });
   }
 

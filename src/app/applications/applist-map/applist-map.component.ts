@@ -409,7 +409,7 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
     // let n = 0;
     // this.map.eachLayer(() => n++);
     // console.log('# map layers =', n);
-    console.log('# marker layers =', this.markerClusterGroup.getLayers().length);
+    // console.log('# marker layers =', this.markerClusterGroup.getLayers().length);
   }
 
   private _onFeatureGroupClick(...args: any[]) {
