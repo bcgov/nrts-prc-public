@@ -88,8 +88,8 @@ export class ApiService {
     return this.get(queryString);
   }
 
-  // TODO: add 'skip' and 'take' parameters
-  getApplications(regions: string[], cpStatuses: string[], appStatuses: string[], applicant: string, clFile: string, dispId: string, purpose: string) {
+  getApplications(pageNum: number, pageSize: number, regions: string[], cpStatuses: string[], appStatuses: string[], applicant: string,
+    clFile: string, dispId: string, purpose: string) {
     const fields = [
       'agency',
       'cl_file',
@@ -111,7 +111,9 @@ export class ApiService {
       'tantalisID'
     ];
 
-    let queryString = 'application?pageNum=0&pageSize=1000000&';
+    let queryString = 'application?';
+    if (pageNum !== null) { queryString += `pageNum=${pageNum}&`; }
+    if (pageSize !== null) { queryString += `pageSize=${pageSize}&`; }
     if (regions.length > 0) { queryString += `regions=${this.buildValues(regions)}&`; }
     if (cpStatuses.length > 0) { queryString += `cpStatuses=${this.buildValues(cpStatuses)}&`; }
     if (appStatuses.length > 0) { queryString += `statuses=${this.buildValues(appStatuses)}&`; }
