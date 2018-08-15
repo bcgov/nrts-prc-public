@@ -387,7 +387,7 @@ export class ApplistMapComponent implements OnInit, OnChanges, OnDestroy {
         const title = `Applicant: ${app.client}\n`
           + `Purpose: ${app.purpose} / ${app.subpurpose}\n`
           + `Status: ${this.applicationService.getStatusString(app.status)}\n`
-          + `Region: ${this.applicationService.regions[app.region]}`;
+          + `Region: ${this.applicationService.getRegionString(app.region)}`;
         const marker = L.marker(L.latLng(app.latitude, app.longitude), { title: title })
           .setIcon(markerIconYellow)
           .on('click', L.Util.bind(this.onMarkerClick, this, this.applications.indexOf(app)));

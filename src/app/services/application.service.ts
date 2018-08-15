@@ -44,8 +44,11 @@ export class ApplicationService {
   readonly VANCOUVER_ISLAND = 'VI';
   //#endregion
 
-  public applicationStatuses: Array<string> = [];
-  public regions: Array<string> = [];
+  // use helpers to get these:
+  private applicationStatuses: Array<string> = [];
+  private regions: Array<string> = [];
+
+  // for caching
   private application: Application = null;
 
   constructor(
@@ -67,7 +70,7 @@ export class ApplicationService {
     this.applicationStatuses[this.OFFER_NOT_ACCEPTED] = 'Decision: Offer Not Accepted';
     this.applicationStatuses[this.OFFERED] = 'Decision: Offered';
     this.applicationStatuses[this.SUSPENDED] = 'Tenure: Suspended';
-    this.applicationStatuses[this.DECISION_MADE] = 'Decision Made';
+    this.applicationStatuses[this.DECISION_MADE] = 'Decision Made'; // NB: calculated status
     this.applicationStatuses[this.UNKNOWN] = 'Unknown Application Status';
 
     this.regions[this.CARIBOO] = 'Cariboo, Williams Lake';
@@ -333,6 +336,7 @@ export class ApplicationService {
         case this.ACCEPTED: return this.applicationStatuses[this.ACCEPTED];
         case this.ALLOWED: return this.applicationStatuses[this.ALLOWED];
         case this.CANCELLED: return this.applicationStatuses[this.CANCELLED];
+        case this.DECISION_MADE: return this.applicationStatuses[this.DECISION_MADE]; // NB: calculated status
         case this.DISALLOWED: return this.applicationStatuses[this.DISALLOWED];
         case this.DISPOSITION_GOOD_STANDING: return this.applicationStatuses[this.DISPOSITION_GOOD_STANDING];
         case this.OFFER_ACCEPTED: return this.applicationStatuses[this.OFFER_ACCEPTED];
@@ -381,10 +385,17 @@ export class ApplicationService {
   /**
    * Returns region abbreviation.
    */
-  private getRegionCode(businessUnit: string): string {
+  getRegionCode(businessUnit: string): string {
     if (businessUnit) {
       return businessUnit.toUpperCase().split(' ')[0];
     }
     return null;
+  }
+
+  /**
+   * Returns user-friendly region string.
+   */
+  getRegionString(abbrev: string): string {
+    return this.regions[abbrev]; // returns null if not found
   }
 }

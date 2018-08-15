@@ -72,7 +72,7 @@
           </div>
           <div class="col-6">
             <label>Region</label>
-            <p class="value">{{applicationService.regions[application.region] || "-"}}</p>
+            <p class="value">{{applicationService.getRegionString(application.region) || "-"}}</p>
           </div>
           <div class="col-6">
             <label>Agency</label>
