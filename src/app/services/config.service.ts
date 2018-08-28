@@ -9,7 +9,7 @@ import { Injectable } from '@angular/core';
 export class ConfigService {
 
   // defaults
-  private _isApplistListVisible = false;
+  private _isApplistListVisible = true;
   private _isApplistFiltersVisible = false;
 
   constructor() { }
