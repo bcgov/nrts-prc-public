@@ -15,13 +15,14 @@ import { ConfigService } from 'app/services/config.service';
 export class ApplistListComponent implements OnInit, OnChanges, OnDestroy {
   // NB: this component is bound to the same list of apps as the other components
   @Input() allApps: Array<Application> = []; // from map component
-  @Input() currentApp: Application = null; // from map component
   @Output() setCurrentApp = new EventEmitter(); // to map component
   @Output() unsetCurrentApp = new EventEmitter(); // to map component
   @Output() updateResultsChange = new EventEmitter(); // to map component
 
+  private currentApp: Application = null;
+  public isListCollapsed: boolean = null;
   public gotChanges = false;
-  public doUpdateResults = true; // bound to checkbox - initial state
+  private doUpdateResults = true; // bound to checkbox - initial state // TODO: should get from config service
 
   constructor(
     private commentPeriodService: CommentPeriodService, // used in template
@@ -36,10 +37,7 @@ export class ApplistListComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   public ngOnChanges(changes: SimpleChanges) {
-    if (changes.currentApp && !changes.currentApp.firstChange && changes.currentApp.currentValue) {
-      console.log('got currentApp change');
-      // nothing to do
-    } else if (changes.allApps && !changes.allApps.firstChange && changes.allApps.currentValue) {
+    if (changes.allApps && !changes.allApps.firstChange && changes.allApps.currentValue) {
       this.gotChanges = true;
 
       // sync initial state to map
@@ -53,7 +51,7 @@ export class ApplistListComponent implements OnInit, OnChanges, OnDestroy {
     return (item === this.currentApp);
   }
 
-  private toggleCurrentApp(item: Application) {
+  public toggleCurrentApp(item: Application) {
     const index = _.findIndex(this.allApps, { _id: item._id });
     if (index >= 0) {
       // this.allApps.splice(index, 1, item); // NOT NEEDED
