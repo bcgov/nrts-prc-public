@@ -400,9 +400,10 @@ export class ApplistMapComponent implements OnInit, AfterViewInit, OnChanges, On
    */
   public toggleAppList() {
     this.configService.isApplistListVisible = !this.configService.isApplistListVisible;
-    const x = this.configService.isApplistListVisible ? -this.applist.clientWidth / 2 : this.applist.clientWidth / 2;
-    const y = 0;
-    this.map.panBy(L.point(x, y));
+    // NB: the following is commented out because it drops apps off the map on narrow viewports (eg, mobile)
+    // const x = this.configService.isApplistListVisible ? -this.applist.clientWidth / 2 : this.applist.clientWidth / 2;
+    // const y = 0;
+    // this.map.panBy(L.point(x, y));
   }
 
   public onLoadStart() { this.loading = true; }
