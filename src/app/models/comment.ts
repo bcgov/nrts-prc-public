@@ -31,12 +31,15 @@ class CommentAuthor {
 class Review {
   _reviewerId: string; // object id -> User
   reviewerNotes: string;
-  reviewerDate: Date;
+  reviewerDate: Date = null;
 
   constructor(obj?: any) {
     this._reviewerId    = obj && obj._reviewerId    || null;
     this.reviewerNotes  = obj && obj.reviewerNotes  || null;
-    this.reviewerDate   = obj && obj.reviewerDate   || null;
+
+    if (obj && obj.reviewerDate) {
+      this.reviewerDate = new Date(obj.reviewerDate);
+    }
   }
 }
 
@@ -48,7 +51,7 @@ export class Comment {
   comment: string;
   commentAuthor: CommentAuthor;
   review: Review;
-  dateAdded: Date;
+  dateAdded: Date = null;
   commentStatus: string;
 
   documents: Array<Document>;
@@ -61,8 +64,11 @@ export class Comment {
     this.comment        = obj && obj.comment        || null;
     this.commentAuthor  = obj && obj.commentAuthor  || new CommentAuthor();
     this.review         = obj && obj.review         || new Review();
-    this.dateAdded      = obj && obj.dateAdded      || null;
     this.commentStatus  = obj && obj.commentStatus  || null;
+
+    if (obj && obj.dateAdded) {
+      this.dateAdded = new Date(obj.dateAdded);
+    }
 
     this.documents = [];
   }
