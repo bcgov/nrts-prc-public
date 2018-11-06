@@ -7,7 +7,7 @@ export class Search {
   _id: string;
   totalFeatures: number;
   features: Array<Feature>;
-  date: Date;
+  date: Date = null;
   crs: string;
   type: string;
   status: string;
@@ -20,11 +20,14 @@ export class Search {
     this.totalFeatures  = search && search.totalFeatures  || 0;
     this.crs            = search && search.crs            || null;
     this.type           = search && search.type           || null;
-    this.date           = search && search.date           || null;
     this.status         = search && search.status         || null;
     this.application    = search && search.application    || null;
     this.sidsFound      = search && search.sidsFound      || [];
     this.hostname       = hostname;
+
+    if (search && search.date) {
+      this.date = new Date(search.date);
+    }
 
     this.features = [];
 

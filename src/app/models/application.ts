@@ -18,7 +18,7 @@ export class Application {
   legalDescription: string;
   location: string;
   name: string; // MAY BE OBSOLETE
-  publishDate: Date;
+  publishDate: Date = null;
   purpose: string;
   status: string;
   subpurpose: string;
@@ -54,7 +54,6 @@ export class Application {
     this.legalDescription        = obj && obj.legalDescription        || null;
     this.location                = obj && obj.location                || null;
     this.name                    = obj && obj.name                    || null;
-    this.publishDate             = obj && obj.publishDate             || null;
     this.purpose                 = obj && obj.purpose                 || null;
     this.status                  = obj && obj.status                  || null;
     this.subpurpose              = obj && obj.subpurpose              || null;
@@ -66,6 +65,10 @@ export class Application {
     this.region                  = obj && obj.region                  || null;
     this.appStatus               = obj && obj.appStatus               || null;
     this.cpStatus                = obj && obj.cpStatus                || null;
+
+    if (obj && obj.publishDate) {
+      this.publishDate = new Date(obj.publishDate);
+    }
 
     if (obj && obj.centroid) {
       obj.centroid.forEach(num => {
