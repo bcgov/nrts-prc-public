@@ -12,6 +12,7 @@ import * as _ from 'lodash';
 import { Application } from 'app/models/application';
 import { ApplicationService } from 'app/services/application.service';
 import { ConfigService } from 'app/services/config.service';
+import { ExploreFiltersType } from 'app/applications/app-explore/app-explore.component';
 import { FiltersType } from 'app/applications/applist-filters/applist-filters.component';
 
 // NB: this number needs to be small enough to give reasonable app loading feedback on slow networks
@@ -29,7 +30,7 @@ export class ApplicationsComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('appmap') appmap;
   @ViewChild('applist') applist;
   @ViewChild('appfilters') appfilters;
-  // @ViewChild('appdetail') appdetail; // FUTURE
+  @ViewChild('appexplore') appexplore;
 
   // FUTURE: change this to an observable and components subscribe to changes ?
   // ref: https://github.com/escardin/angular2-community-faq/blob/master/services.md#how-do-i-communicate-between-components-using-a-shared-service
@@ -249,6 +250,15 @@ export class ApplicationsComponent implements OnInit, AfterViewInit, OnDestroy {
   public showDetails() {
     this.configService.isSidePanelVisible = true;
     this.configService.isAppDetailsVisible = true;
+    this.configService.isExploreAppsVisible = false;
+    this.configService.isFindAppsVisible = false;
+  }
+
+  // show find applications interface
+  public showExplore() {
+    this.configService.isSidePanelVisible = true;
+    this.configService.isAppDetailsVisible = false;
+    this.configService.isExploreAppsVisible = true;
     this.configService.isFindAppsVisible = false;
   }
 
@@ -256,6 +266,7 @@ export class ApplicationsComponent implements OnInit, AfterViewInit, OnDestroy {
   public showFind() {
     this.configService.isSidePanelVisible = true;
     this.configService.isAppDetailsVisible = false;
+    this.configService.isExploreAppsVisible = false;
     this.configService.isFindAppsVisible = true;
   }
 
