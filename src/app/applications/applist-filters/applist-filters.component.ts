@@ -118,12 +118,21 @@ export class ApplistFiltersComponent implements OnInit, OnDestroy {
     this.cpStatusKeys.push(this.commentPeriodService.OPEN);
     this.cpStatusKeys.push(this.commentPeriodService.NOT_OPEN);
 
-    this.appStatusKeys.push(this.applicationService.ACCEPTED);
-    this.appStatusKeys.push(this.applicationService.DECISION_MADE);
-    this.appStatusKeys.push(this.applicationService.CANCELLED);
+    this.appStatusKeys.push(this.applicationService.APPLICATION_UNDER_REVIEW);
+    this.appStatusKeys.push(this.applicationService.APPLICATION_REVIEW_COMPLETE);
+    this.appStatusKeys.push(this.applicationService.DECISION_APPROVED);
+    this.appStatusKeys.push(this.applicationService.DECISION_NOT_APPROVED);
     this.appStatusKeys.push(this.applicationService.ABANDONED);
-    this.appStatusKeys.push(this.applicationService.DISPOSITION_GOOD_STANDING);
-    this.appStatusKeys.push(this.applicationService.SUSPENDED);
+
+    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
+      this.purposeKeys.push(purpose.toUpperCase());
+    });
+
+    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
+      Constants.subpurposes[purpose].forEach(subpurpose => {
+        this.subpurposeKeys.push(subpurpose.toUpperCase());
+      });
+    });
 
     // watch for URL param changes
     this.urlService.onNavEnd$
@@ -139,19 +148,7 @@ export class ApplistFiltersComponent implements OnInit, OnDestroy {
     return this.elementRef.nativeElement.offsetTop + this.elementRef.nativeElement.firstElementChild.firstElementChild.clientHeight;
   }
 
-  public ngOnInit() {
-    // load these lists just once as they don't change
-    // build array of purposes only
-    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
-      this.purposeKeys.push(purpose.toUpperCase());
-    });
-    // build array of subpurposes only
-    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
-      Constants.subpurposes[purpose].forEach(subpurpose => {
-        this.subpurposeKeys.push(subpurpose.toUpperCase());
-      });
-    });
-  }
+  public ngOnInit() { }
 
   public ngOnDestroy() {
     this.ngUnsubscribe.next();
