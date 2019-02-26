@@ -109,14 +109,7 @@
           </div>
         </div>
         <div *ngIf="!application.decision">
-          <div *ngIf="applicationService.isAbandoned(application.appStatusCode)
-          || applicationService.isDecisionApproved(application.appStatusCode)
-          || applicationService.isDecisionNotApproved(application.appStatusCode); else notDecisionStatus">
-            No decision documents are available at this time. Please check back for updates to this information.
-          </div>
-          <ng-template #notDecisionStatus>
-            No decisions have been made for this application at this time.
-          </ng-template>
+          No decision documents are available at this time. Please check back for updates to this information.
         </div>
       </section>
 
