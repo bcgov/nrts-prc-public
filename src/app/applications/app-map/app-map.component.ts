@@ -150,7 +150,7 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       }
     });
 
-    const esriOceanBasemap = L.tileLayer(
+    const Esri_OceanBasemap = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean_Basemap/MapServer/tile/{z}/{y}/{x}',
       {
         attribution:
@@ -160,7 +160,7 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         noWrap: true
       }
     );
-    const esriNatGeoWorldMap = L.tileLayer(
+    const Esri_NatGeoWorldMap = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
       {
         attribution:
@@ -170,7 +170,7 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         noWrap: true
       }
     );
-    const worldTopoMap = L.tileLayer(
+    const World_Topo_Map = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
       {
         attribution:
@@ -180,7 +180,7 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         noWrap: true
       }
     );
-    const worldImagery = L.tileLayer(
+    const World_Imagery = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {
         attribution:
@@ -256,10 +256,10 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     // define baselayers
     const baseLayers = {
-      'Ocean Base': esriOceanBasemap,
-      'Nat Geo World Map': esriNatGeoWorldMap,
-      'World Topographic': worldTopoMap,
-      'World Imagery': worldImagery
+      'Ocean Base': Esri_OceanBasemap,
+      'Nat Geo World Map': Esri_NatGeoWorldMap,
+      'World Topographic': World_Topo_Map,
+      'World Imagery': World_Imagery
     };
 
     // add layer control

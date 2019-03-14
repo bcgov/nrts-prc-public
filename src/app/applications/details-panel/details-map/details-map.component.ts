@@ -38,7 +38,7 @@ export class DetailsMapComponent implements AfterViewInit, OnDestroy {
       }
     });
 
-    const worldImagery = L.tileLayer(
+    const World_Imagery = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {
         attribution:
@@ -50,7 +50,7 @@ export class DetailsMapComponent implements AfterViewInit, OnDestroy {
     );
 
     this.map = L.map('map', {
-      layers: [worldImagery],
+      layers: [World_Imagery],
       zoomControl: false, // will be added manually below
       attributionControl: false, // assume not needed in thumbnail
       scrollWheelZoom: false, // not desired in thumbnail
