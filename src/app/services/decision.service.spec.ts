@@ -41,7 +41,7 @@ describe('DecisionService', () => {
     describe('when forceReload is set to true', () => {
       describe('when no decision is returned by the Api', () => {
         it('returns a null Decision', async(() => {
-          apiSpy.getDecisionByAppId.and.returnValue(of({ text: () => {} }));
+          apiSpy.getDecisionByAppId.and.returnValue(of());
 
           service.getByApplicationId('1', true).subscribe(result => expect(result).toEqual(null as Decision));
         }));
@@ -49,12 +49,7 @@ describe('DecisionService', () => {
 
       describe('when one decision is returned by the Api', () => {
         it('returns one Decision', async(() => {
-          apiSpy.getDecisionByAppId.and.returnValue(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '1' }]
-            })
-          );
+          apiSpy.getDecisionByAppId.and.returnValue(of([{ _id: '1' }]));
 
           documentServiceSpy.getAllByDecisionId.and.callFake((decisionId: string) => {
             expect(decisionId).toEqual('1');
@@ -74,12 +69,7 @@ describe('DecisionService', () => {
 
       describe('when multiple decisions are returned by the Api', () => {
         it('returns only the first Decision', async(() => {
-          apiSpy.getDecisionByAppId.and.returnValue(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '2' }, { _id: '3' }, { _id: '4' }]
-            })
-          );
+          apiSpy.getDecisionByAppId.and.returnValue(of([{ _id: '2' }, { _id: '3' }, { _id: '4' }]));
 
           documentServiceSpy.getAllByDecisionId.and.returnValues(
             of([new Document({ _id: '22' })]),
@@ -112,10 +102,7 @@ describe('DecisionService', () => {
           );
 
           apiSpy.getDecisionByAppId.and.returnValues(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '3', _application: '31' }]
-            }),
+            of([{ _id: '3', _application: '31' }]),
             throwError(Error('Was not expecting ApiService.getDecisionByAppId to be called more than once.'))
           );
 
@@ -139,12 +126,7 @@ describe('DecisionService', () => {
 
       describe('when no decision is cached', () => {
         it('calls the api to fetch a decision', async(() => {
-          apiSpy.getDecisionByAppId.and.returnValue(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '4', _application: '41' }]
-            })
-          );
+          apiSpy.getDecisionByAppId.and.returnValue(of([{ _id: '4', _application: '41' }]));
 
           documentServiceSpy.getAllByDecisionId.and.returnValues(
             of([new Document({ _id: '44' })]),
@@ -166,13 +148,7 @@ describe('DecisionService', () => {
 
     describe('when an exception is thrown', () => {
       it('ApiService.handleError is called and the error is re-thrown', async(() => {
-        apiSpy.getDecisionByAppId.and.returnValue(
-          of({
-            text: () => {
-              throw Error('someError');
-            }
-          })
-        );
+        apiSpy.getDecisionByAppId.and.returnValue(throwError(new Error('someError')));
         apiSpy.handleError.and.callFake(error => {
           expect(error).toEqual(Error('someError'));
           return throwError(Error('someRethrownError'));
@@ -203,7 +179,7 @@ describe('DecisionService', () => {
     describe('when forceReload is set to true', () => {
       describe('when no decision is returned by the Api', () => {
         it('returns a null Decision', async(() => {
-          apiSpy.getDecision.and.returnValue(of({ text: () => {} }));
+          apiSpy.getDecision.and.returnValue(of());
 
           service.getById('1', true).subscribe(result => expect(result).toEqual(null as Decision));
         }));
@@ -211,12 +187,7 @@ describe('DecisionService', () => {
 
       describe('when one decision is returned by the Api', () => {
         it('returns one Decision', async(() => {
-          apiSpy.getDecision.and.returnValue(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '1' }]
-            })
-          );
+          apiSpy.getDecision.and.returnValue(of([{ _id: '1' }]));
 
           documentServiceSpy.getAllByDecisionId.and.callFake((decisionId: string) => {
             expect(decisionId).toEqual('1');
@@ -236,12 +207,7 @@ describe('DecisionService', () => {
 
       describe('when multiple decisions are returned by the Api', () => {
         it('returns only the first Decision', async(() => {
-          apiSpy.getDecision.and.returnValue(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '4' }, { _id: '5' }, { _id: '6' }]
-            })
-          );
+          apiSpy.getDecision.and.returnValue(of([{ _id: '4' }, { _id: '5' }, { _id: '6' }]));
 
           documentServiceSpy.getAllByDecisionId.and.returnValues(
             of([new Document({ _id: '44' })]),
@@ -269,10 +235,7 @@ describe('DecisionService', () => {
           );
 
           apiSpy.getDecision.and.returnValues(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '5', _application: '51' }]
-            }),
+            of([{ _id: '5', _application: '51' }]),
             throwError(new Error('Was not expecting ApiService.getDecision to be called more than once.'))
           );
 
@@ -296,12 +259,7 @@ describe('DecisionService', () => {
 
       describe('when no decision is cached', () => {
         it('calls the api to fetch a decision', async(() => {
-          apiSpy.getDecision.and.returnValue(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '7', _application: '71' }]
-            })
-          );
+          apiSpy.getDecision.and.returnValue(of([{ _id: '7', _application: '71' }]));
 
           documentServiceSpy.getAllByDecisionId.and.returnValues(
             of([new Document({ _id: '77' })]),
@@ -323,13 +281,7 @@ describe('DecisionService', () => {
 
     describe('when an exception is thrown', () => {
       it('ApiService.handleError is called and the error is re-thrown', async(() => {
-        apiSpy.getDecision.and.returnValue(
-          of({
-            text: () => {
-              throw Error('someError');
-            }
-          })
-        );
+        apiSpy.getDecision.and.returnValue(throwError(new Error('someError')));
         apiSpy.handleError.and.callFake(error => {
           expect(error).toEqual(Error('someError'));
           return throwError(Error('someRethrownError'));

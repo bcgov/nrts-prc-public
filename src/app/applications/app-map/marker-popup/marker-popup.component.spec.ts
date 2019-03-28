@@ -1,69 +1,40 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
-import { NgxTextOverflowClampModule } from 'ngx-text-overflow-clamp';
-
 import { MarkerPopupComponent } from './marker-popup.component';
-import { VarDirective } from 'app/utils/ng-var.directive';
 import { ApplicationService } from 'app/services/application.service';
 import { CommentPeriodService } from 'app/services/commentperiod.service';
 import { Application } from 'app/models/application';
+import { UrlService } from 'app/services/url.service';
+import { of } from 'rxjs';
 
 describe('MarkerPopupComponent', () => {
   let component: MarkerPopupComponent;
   let fixture: ComponentFixture<MarkerPopupComponent>;
-  const application = new Application({ _id: 'BBBB', appStatus: 'Application Under Review' });
-  const stubApplicationService = {
-    getStatusCode() {
-      return 'AC';
-    },
-    isAccepted() {
-      return true;
-    },
-    isDispGoodStanding() {
-      return false;
-    },
-    isOffered() {
-      return true;
-    },
-    isOfferAccepted() {
-      return true;
-    },
-    isOfferNotAccepted() {
-      return false;
-    },
-    isAbandoned() {
-      return false;
-    },
-    isAllowed() {
-      return false;
-    },
-    isDisallowed() {
-      return false;
-    },
-    isSuspended() {
-      return false;
-    },
-    isUnknown() {
-      return false;
-    },
-    isCancelled() {
-      return false;
-    }
-  };
 
-  const stubCommentPeriodService = {
-    isOpen() {
-      return true;
-    }
-  };
+  const app = new Application({ _id: '1234' });
+
+  const applicationServiceSpy = jasmine.createSpyObj('ApplicationService', [
+    'getById',
+    'getCount',
+    'isAmendment',
+    'isAbandoned',
+    'isApplicationUnderReview',
+    'isApplicationReviewComplete',
+    'isDecisionApproved',
+    'isDecisionNotApproved',
+    'isUnknown',
+    'getStatusStringLong'
+  ]);
+  const commentPeriodServiceSpy = jasmine.createSpyObj('CommentPeriodService', ['isOpen', 'getStatusStringLong']);
+  const urlServiceSpy = jasmine.createSpyObj('UrlService', ['save', 'setFragment']);
+  urlServiceSpy.onNavEnd$ = of();
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [MarkerPopupComponent, VarDirective],
-      imports: [NgxTextOverflowClampModule, RouterTestingModule],
+      declarations: [MarkerPopupComponent],
       providers: [
-        { provide: ApplicationService, useValue: stubApplicationService },
-        { provide: CommentPeriodService, useValue: stubCommentPeriodService }
+        { provide: ApplicationService, useValue: applicationServiceSpy },
+        { provide: CommentPeriodService, useValue: commentPeriodServiceSpy },
+        { provide: UrlService, useValue: urlServiceSpy }
       ]
     }).compileComponents();
   }));
@@ -71,11 +42,19 @@ describe('MarkerPopupComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(MarkerPopupComponent);
     component = fixture.componentInstance;
-    component.app = application;
+
+    applicationServiceSpy.getById.and.returnValue(of(app));
+
     fixture.detectChanges();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  describe('ngOnInit', () => {
+    it('sets local app variable', () => {
+      expect(component.app).toBe(app);
+    });
   });
 });

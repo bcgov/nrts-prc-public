@@ -22,9 +22,11 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
   @Output() setCurrentApp = new EventEmitter(); // to applications component
 
   private currentApp: Application = null; // for selecting app in list
-  public isListLoading = true; // initial value
-  private numToShow = 0;
   private ngUnsubscribe: Subject<boolean> = new Subject<boolean>();
+  private numToShow = 0;
+
+  public isListLoading = true; // initial value
+  public applicationsWithShapesCount = 0; // used in template
 
   constructor(
     public applicationService: ApplicationService,
@@ -89,8 +91,8 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
     return this.applications.filter(a => a.isLoaded);
   }
 
-  public appsWithShapes(): Application[] {
-    return this.applications.filter(a => a.centroid.length === 2);
+  public appsWithShapesCount(): number {
+    return this.applications.filter(a => a.centroid.length === 2).length;
   }
 
   public loadMore() {
@@ -113,6 +115,7 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
                 // safety check
                 this.applications[i] = app;
                 this.applications[i].isLoaded = true;
+                this.applicationsWithShapesCount = this.appsWithShapesCount();
               }
             },
             error => console.log(error)

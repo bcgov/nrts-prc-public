@@ -1,46 +1,47 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { MatSnackBar } from '@angular/material';
 import { FormsModule } from '@angular/forms';
-import { NgbModule, NgbTypeaheadConfig } from '@ng-bootstrap/ng-bootstrap';
-import { of } from 'rxjs';
+import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
-import { Application } from 'app/models/application';
-import { ApplicationService } from 'app/services/application.service';
-import { CommentPeriodService } from 'app/services/commentperiod.service';
-import { VarDirective } from 'app/utils/ng-var.directive';
 import { ApplicationsComponent } from './applications.component';
+import { MatSnackBar } from '@angular/material';
+import { ApplicationService } from 'app/services/application.service';
+import { UrlService } from 'app/services/url.service';
+import { of } from 'rxjs';
+import { Renderer2 } from '@angular/core';
+import { MockComponent } from 'ng-mocks';
+import { DetailsPanelComponent } from './details-panel/details-panel.component';
 import { FindPanelComponent } from './find-panel/find-panel.component';
+import { ExplorePanelComponent } from './explore-panel/explore-panel.component';
 import { AppListComponent } from './app-list/app-list.component';
 import { AppMapComponent } from './app-map/app-map.component';
 
 describe('ApplicationsComponent', () => {
   let component: ApplicationsComponent;
   let fixture: ComponentFixture<ApplicationsComponent>;
-  const apiServiceSpy = jasmine.createSpyObj('ApiService', ['getApplications']);
-  const commentPeriodService = new CommentPeriodService(apiServiceSpy);
 
-  const applicationServiceStub = {
-    getCount() {
-      return of(2);
-    },
-
-    getAllFull() {
-      const applicationOne = new Application();
-      const applicationTwo = new Application();
-      return of([applicationOne, applicationTwo]);
-    }
-  };
+  const matSnackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
+  const applicationServiceSpy = jasmine.createSpyObj('ApplicationService', ['getAll', 'getCount']);
+  applicationServiceSpy.getCount.and.returnValue(of());
+  const urlServiceSpy = jasmine.createSpyObj('UrlService', ['setFragment']);
+  urlServiceSpy.onNavEnd$ = of();
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ApplicationsComponent, FindPanelComponent, AppListComponent, AppMapComponent, VarDirective],
+      declarations: [
+        ApplicationsComponent,
+        MockComponent(DetailsPanelComponent),
+        MockComponent(ExplorePanelComponent),
+        MockComponent(FindPanelComponent),
+        MockComponent(AppListComponent),
+        MockComponent(AppMapComponent)
+      ],
       imports: [NgbModule, FormsModule, RouterTestingModule],
       providers: [
-        NgbTypeaheadConfig,
-        { provide: ApplicationService, useValue: applicationServiceStub },
-        { provide: MatSnackBar },
-        { provide: CommentPeriodService, useValue: commentPeriodService }
+        { provide: MatSnackBar, useValue: matSnackBarSpy },
+        { provide: ApplicationService, useValue: applicationServiceSpy },
+        { provide: UrlService, useValue: urlServiceSpy },
+        Renderer2
       ]
     }).compileComponents();
   }));
@@ -51,7 +52,7 @@ describe('ApplicationsComponent', () => {
     fixture.detectChanges();
   });
 
-  xit('should be created', () => {
+  it('should be created', () => {
     expect(component).toBeTruthy();
   });
 });

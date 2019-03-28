@@ -59,11 +59,15 @@ export class ConstantUtils {
    *
    * @static
    * @param {CodeType} codeType which group of codes to search for a possible match.
-   * @param {string} searchString either a group, code, long, short, or mapped status string.
+   * @param {string} searchString either a group, code, long, short, or mapped status string. (case insensitive)
    * @returns {ICodeGroup}
    * @memberof ConstantUtils
    */
   public static getCodeGroup(codeType: CodeType, searchString: string): ICodeGroup {
+    if (!searchString) {
+      return null;
+    }
+
     const codeSet: ICodeSet = this.getCodeSet(codeType);
 
     if (!codeSet) {
@@ -73,12 +77,13 @@ export class ConstantUtils {
     const codeGroups = codeSet.getCodeGroups();
 
     for (const codeGroup of codeGroups) {
+      searchString = searchString.toUpperCase();
       if (
-        codeGroup.code === searchString ||
-        codeGroup.param === searchString ||
-        codeGroup.text.long === searchString ||
-        codeGroup.text.short === searchString ||
-        codeGroup.mappedCodes.includes(searchString)
+        codeGroup.code.toUpperCase() === searchString ||
+        codeGroup.param.toUpperCase() === searchString ||
+        codeGroup.text.long.toUpperCase() === searchString ||
+        codeGroup.text.short.toUpperCase() === searchString ||
+        codeGroup.mappedCodes.map(code => code.toUpperCase()).includes(searchString)
       ) {
         return codeGroup;
       }
@@ -97,6 +102,10 @@ export class ConstantUtils {
    * @memberof ConstantUtils
    */
   static getCode(codeType: CodeType, searchString: string): string {
+    if (!searchString) {
+      return null;
+    }
+
     const codeGroup: ICodeGroup = this.getCodeGroup(codeType, searchString);
 
     if (!codeGroup) {
@@ -116,6 +125,10 @@ export class ConstantUtils {
    * @memberof ConstantUtils
    */
   static getParam(codeType: CodeType, searchString: string): string {
+    if (!searchString) {
+      return null;
+    }
+
     const codeGroup: ICodeGroup = this.getCodeGroup(codeType, searchString);
 
     if (!codeGroup) {
@@ -135,6 +148,10 @@ export class ConstantUtils {
    * @memberof ConstantUtils
    */
   static getTextShort(codeType: CodeType, searchString: string): string {
+    if (!searchString) {
+      return null;
+    }
+
     const codeGroup: ICodeGroup = this.getCodeGroup(codeType, searchString);
 
     if (!codeGroup) {
@@ -154,6 +171,10 @@ export class ConstantUtils {
    * @memberof ConstantUtils
    */
   static getTextLong(codeType: CodeType, searchString: string): string {
+    if (!searchString) {
+      return null;
+    }
+
     const codeGroup: ICodeGroup = this.getCodeGroup(codeType, searchString);
 
     if (!codeGroup) {
@@ -173,6 +194,10 @@ export class ConstantUtils {
    * @memberof ConstantUtils
    */
   static getMappedCodes(codeType: CodeType, searchString: string): string[] {
+    if (!searchString) {
+      return null;
+    }
+
     const codeGroup: ICodeGroup = this.getCodeGroup(codeType, searchString);
 
     if (!codeGroup) {

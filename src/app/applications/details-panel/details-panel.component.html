@@ -40,12 +40,12 @@
         </div>
       </section>
       <div *ngIf="application.currentPeriod">
-        <section class="status-section" *ngVar="application.currentPeriod['daysRemaining'] as daysRemaining">
+        <section class="status-section">
           <div class="status" [ngClass]="commentPeriodService.isOpen(application.cpStatus) ? 'commenting-open':'commenting-closed'">
-            <div><strong>{{commentPeriodService.getStatusStringLong(application.cpStatus)}} <span *ngIf="commentPeriodService.isOpen(application.cpStatus)">({{daysRemaining === 1 ? daysRemaining + " day" : daysRemaining + " days"}} remaining)</span></strong></div>
+            <div><strong>{{commentPeriodService.getStatusStringLong(application.cpStatus)}} <span *ngIf="commentPeriodService.isOpen(application.cpStatus)">({{currentPeriodDaysRemainingCount === 1 ? currentPeriodDaysRemainingCount + " day" : currentPeriodDaysRemainingCount + " days"}} remaining)</span></strong></div>
           </div>
           <div class="status-msg" *ngIf="commentPeriodService.isOpen(application.cpStatus)">
-            This application is currently accepting comments for the next {{daysRemaining === 1 ? daysRemaining + " day" : daysRemaining + " days"}}. Commenting will close on {{application.currentPeriod.endDate | date:'longDate'}}.
+            This application is currently accepting comments for the next {{currentPeriodDaysRemainingCount === 1 ? currentPeriodDaysRemainingCount + " day" : currentPeriodDaysRemainingCount + " days"}}. Commenting will close on {{application.currentPeriod.endDate | date:'longDate'}}.
           </div>
           <div class="status-msg" *ngIf="!commentPeriodService.isOpen(application.cpStatus)">
             Commenting is closed for this application. Comments were accepted from {{application.currentPeriod.startDate | date:'longDate'}} to {{application.currentPeriod.endDate | date:'longDate'}}.

@@ -23,6 +23,8 @@ export interface ICodeGroup {
   /**
    * A string that uniquely identifies this code group.
    *
+   * This value comes from the code description returned by the Tantalis API.
+   *
    * @type {string}
    * @memberof ICodeGroup
    */
@@ -47,7 +49,7 @@ export interface ICodeGroup {
   text: { short: string; long: string };
 
   /**
-   * Child code values. Child codes that are grouped under this parent code.
+   * Child code values. Child codes that are grouped under this code.
    *
    * Tantalis supports numerous code values, many of which are more detailed and numerous than public users would ever
    * care about. As a result, most codes in ACRFD are grouped under a single parent code, in order to simplify and

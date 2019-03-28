@@ -8,12 +8,9 @@ import { NewlinesPipe } from 'app/pipes/newlines.pipe';
 import { ObjectFilterPipe } from 'app/pipes/object-filter.pipe';
 import { LinkifyPipe } from 'app/pipes/linkify.pipe';
 
-import { VarDirective } from 'app/utils/ng-var.directive';
-import { DragMoveDirective } from 'app/utils/drag-move.directive';
-
 @NgModule({
   imports: [BrowserModule, MatProgressBarModule, MatSnackBarModule, NgxTextOverflowClampModule],
-  declarations: [OrderByPipe, NewlinesPipe, ObjectFilterPipe, LinkifyPipe, VarDirective, DragMoveDirective],
+  declarations: [OrderByPipe, NewlinesPipe, ObjectFilterPipe, LinkifyPipe],
   exports: [
     MatProgressBarModule,
     MatSnackBarModule,
@@ -21,9 +18,7 @@ import { DragMoveDirective } from 'app/utils/drag-move.directive';
     OrderByPipe,
     NewlinesPipe,
     ObjectFilterPipe,
-    LinkifyPipe,
-    VarDirective,
-    DragMoveDirective
+    LinkifyPipe
   ]
 })
 export class SharedModule {}
