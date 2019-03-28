@@ -7,7 +7,7 @@
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
-      "targets": {
+      "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
@@ -79,7 +79,7 @@
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
             "main": "src/test.ts",
-            "karmaConfig": "./karma.conf.js",
+            "karmaConfig": "src/karma.conf.js",
             "polyfills": "src/polyfills.ts",
             "tsConfig": "src/tsconfig.spec.json",
             "scripts": [
@@ -120,7 +120,7 @@
       "root": "e2e",
       "sourceRoot": "e2e",
       "projectType": "application",
-      "targets": {
+      "architect": {
         "e2e": {
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
