@@ -208,7 +208,7 @@ describe('CommentService', () => {
 
     describe('when the comment period has no comments', () => {
       it('returns an empty Comment array', async(() => {
-        apiSpy.getCommentsByPeriodId.and.returnValue(of({ text: () => {} }));
+        apiSpy.getCommentsByPeriodId.and.returnValue(of());
         service.getAllByPeriodId('1').subscribe(res => {
           expect(res).toEqual([] as Comment[]);
         });
@@ -217,7 +217,7 @@ describe('CommentService', () => {
 
     describe('when the comment period has one comment', () => {
       it('returns an array with one Comment element', async(() => {
-        apiSpy.getCommentsByPeriodId.and.returnValue(of({ text: () => 'notNull', json: () => [{ _id: '1' }] }));
+        apiSpy.getCommentsByPeriodId.and.returnValue(of([{ _id: '1' }]));
         service.getAllByPeriodId('1').subscribe(res => {
           expect(res).toEqual([new Comment({ _id: '1' })]);
         });
@@ -226,12 +226,7 @@ describe('CommentService', () => {
 
     describe('when the comment period has one comment', () => {
       it('returns an array with one Comment element', async(() => {
-        apiSpy.getCommentsByPeriodId.and.returnValue(
-          of({
-            text: () => 'notNull',
-            json: () => [{ _id: '1' }, { _id: '2' }, { _id: '3' }]
-          })
-        );
+        apiSpy.getCommentsByPeriodId.and.returnValue(of([{ _id: '1' }, { _id: '2' }, { _id: '3' }]));
         service.getAllByPeriodId('1').subscribe(res => {
           expect(res).toEqual([new Comment({ _id: '1' }), new Comment({ _id: '2' }), new Comment({ _id: '3' })]);
         });
@@ -272,7 +267,7 @@ describe('CommentService', () => {
     describe('when forceReload is set to true', () => {
       describe('when no comment is returned by the Api', () => {
         it('returns a null Comment', async(() => {
-          apiSpy.getComment.and.returnValue(of({ text: () => {} }));
+          apiSpy.getComment.and.returnValue(of());
 
           service.getById('1', true).subscribe(result => expect(result).toEqual(null as Comment));
         }));
@@ -280,7 +275,7 @@ describe('CommentService', () => {
 
       describe('when one comment is returned by the Api', () => {
         it('returns one Comment', async(() => {
-          apiSpy.getComment.and.returnValue(of({ text: () => 'notNull', json: () => [{ _id: '1' }] }));
+          apiSpy.getComment.and.returnValue(of([{ _id: '1' }]));
 
           documentServiceSpy.getAllByCommentId.and.returnValue(of([] as Document[]));
 
@@ -290,12 +285,7 @@ describe('CommentService', () => {
 
       describe('when multiple comments are returned by the Api', () => {
         it('returns only the first Comment', async(() => {
-          apiSpy.getComment.and.returnValue(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '1' }, { _id: '2' }, { _id: '3' }]
-            })
-          );
+          apiSpy.getComment.and.returnValue(of([{ _id: '1' }, { _id: '2' }, { _id: '3' }]));
 
           documentServiceSpy.getAllByCommentId.and.returnValues(
             of([new Document({ _id: '6' })]),
@@ -318,10 +308,7 @@ describe('CommentService', () => {
           );
 
           apiSpy.getComment.and.returnValues(
-            of({
-              text: () => 'notNull',
-              json: () => [{ _id: '1' }]
-            }),
+            of([{ _id: '1' }]),
             throwError(Error('Was not expecting ApIService.getComment to be called more than once.'))
           );
 
@@ -339,7 +326,7 @@ describe('CommentService', () => {
 
       describe('when no comment is cached', () => {
         it('calls the api to fetch a comment', async(() => {
-          apiSpy.getComment.and.returnValue(of({ text: () => 'notNull', json: () => [{ _id: '3' }] }));
+          apiSpy.getComment.and.returnValue(of([{ _id: '3' }]));
 
           documentServiceSpy.getAllByCommentId.and.returnValues(
             of([new Document({ _id: '8' })]),
@@ -355,13 +342,7 @@ describe('CommentService', () => {
 
     describe('when an exception is thrown', () => {
       it('ApiService.handleError is called and the error is re-thrown', async(() => {
-        apiSpy.getComment.and.returnValue(
-          of({
-            text: () => {
-              throw Error('someError');
-            }
-          })
-        );
+        apiSpy.getComment.and.returnValue(throwError(new Error('someError')));
         apiSpy.handleError.and.callFake(error => {
           expect(error).toEqual(Error('someError'));
           return throwError(Error('someRethrownError'));
@@ -389,7 +370,7 @@ describe('CommentService', () => {
 
     describe('when no comment is returned by the api', () => {
       it('returns null', async(() => {
-        apiSpy.addComment.and.returnValue(of({ text: () => {} }));
+        apiSpy.addComment.and.returnValue(of());
 
         service.add(new Comment()).subscribe(result => expect(result).toEqual(null as Comment));
       }));
@@ -399,12 +380,7 @@ describe('CommentService', () => {
       it('returns the empty comment', async(() => {
         const comment = new Comment();
 
-        apiSpy.addComment.and.returnValue(
-          of({
-            text: () => 'notNull',
-            json: () => comment
-          })
-        );
+        apiSpy.addComment.and.returnValue(of(comment));
 
         service.add(comment).subscribe(result => {
           expect(result).toEqual(comment);
@@ -435,10 +411,7 @@ describe('CommentService', () => {
         // Replace ApiService.addComment with a fake method that simply returns the arg passed to it.
         apiSpy.addComment.and.callFake((arg: Comment) => {
           modifiedComment = arg;
-          return of({
-            text: () => 'notNull',
-            json: () => arg
-          });
+          return of(arg);
         });
 
         service.add(comment).subscribe(result => {

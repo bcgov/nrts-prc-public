@@ -275,9 +275,9 @@ describe('ApplicationService', () => {
       expect(service.getStatusStringLong(application)).toBe('Unknown Status');
     });
 
-    it('with status ABANDONED and reason AMENDMENT it returns "Application Amendment"', () => {
-      application = new Application({ status: 'ABANDONED', reason: 'AMENDMENT' });
-      expect(service.getStatusStringLong(application)).toBe('Application Amendment');
+    it('with status ABANDONED and reason AMENDMENT APPROVED - APPLICATION it returns "Amendment: Approved"', () => {
+      application = new Application({ status: 'ABANDONED', reason: 'AMENDMENT APPROVED - APPLICATION' });
+      expect(service.getStatusStringLong(application)).toBe('Amendment: Approved');
     });
 
     it('with status ABANDONED it returns "Abandoned"', () => {

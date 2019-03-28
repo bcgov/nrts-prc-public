@@ -33,6 +33,7 @@ export class DetailsPanelComponent implements OnDestroy {
   public isAppLoading: boolean;
   public applicationId: number = null;
   public application: Application = null;
+  public currentPeriodDaysRemainingCount = 0;
 
   public applicationIdFilter = new Filter<string>({ filter: { queryParam: 'id', value: null } });
 
@@ -54,6 +55,16 @@ export class DetailsPanelComponent implements OnDestroy {
         this.getApplication();
       }
     });
+  }
+
+  /**
+   * The 'daysRemaining' value from the application current comment period, or else 0.
+   *
+   * @returns {number} application comment period 'daysRemaining'
+   * @memberof DetailsPanelComponent
+   */
+  public CurrentPeriodDaysRemainingCount(): number {
+    return this.application.currentPeriod ? this.application.currentPeriod['daysRemaining'] : 0;
   }
 
   /**
@@ -79,6 +90,8 @@ export class DetailsPanelComponent implements OnDestroy {
             this.saveQueryParameters();
 
             this.update.emit(this.application);
+
+            this.currentPeriodDaysRemainingCount = this.CurrentPeriodDaysRemainingCount();
           }
         },
         error => {

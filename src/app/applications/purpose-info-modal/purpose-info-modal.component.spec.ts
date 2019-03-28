@@ -1,6 +1,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { PurposeInfoModalComponent } from './purpose-info-modal.component';
+import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 
 describe('PurposeInfoModalComponent', () => {
   let component: PurposeInfoModalComponent;
@@ -8,6 +9,7 @@ describe('PurposeInfoModalComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
+      providers: [NgbActiveModal],
       declarations: [PurposeInfoModalComponent]
     }).compileComponents();
   }));

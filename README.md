@@ -12,7 +12,7 @@ Public front-end for the ACRFD (formerly: PRC) application.
 |------------|---------|-------------------------|-------------------------------------------|
 | node       | 10.x.x  | https://nodejs.org/en/  | JavaScript Runtime                        |
 | npm        | 6.x.x   | https://www.npmjs.com/  | Node Package Manager                      |
-| ng         | 6.x.x   | https://cli.angular.io/ | Angular CLI                               |
+| ng         | 7.x.x   | https://cli.angular.io/ | Angular CLI                               |
 | yarn       | latest  | https://yarnpkg.com/en/ | Package Manager (more efficient than npm) |
 
 _Note: This app also requires [bcgov/nrts-prc-api](https://github.com/bcgov/nrts-prc-api) to handle its requests._
@@ -39,32 +39,32 @@ npm install -g yarn
 
 ## Dev
 1. Download dependencies
-```
-yarn install
-```
+   ```
+   yarn install
+   ```
 2. Run the app
-```
-npm start
-```
+   ```
+   npm start
+   ```
 3. Go to http://localhost:4300 to verify that the application is running
 
     _Note: To change the default port edit `angular.json`._
 
 ## Prod
 1. Download dependencies
-```
-yarn install
-```
+   ```
+   yarn install
+   ```
 2. Run the build
 
    The build artifacts will be stored in the `./dist/` directory.
-```
-npm run build
-```
+   ```
+   npm run build
+   ```
 3. (Optional) Use the `--prod` flag to run the app in prod mode
-```
-ng serve --prod
-```
+   ```
+   ng serve --prod
+   ```
 
 # Linting and Formatting
 
@@ -73,8 +73,6 @@ ng serve --prod
 Linting and formatting is handled by a combiation of `TSlint` and `Prettier`.  The reason for this, is that you get the best of both worlds: TSlint's larger selection of linting rules with Prettier's robust formatting rules.
 
 These 2 linters (tslint, Prettier) do have overlapping rules.  To avoid weird rule interactions, TSlint has been configured to defer any overlapping rules to Prettier, via the use of `tslint-config-prettier` in `tslint.json`.
-
-Recommend installing the [VSCode Prettier extension](https://github.com/prettier/prettier-vscode), so Prettier's formatting can be applied on-the-fly.
 
 ### Technolgies used
 
@@ -97,17 +95,17 @@ If the linters or formatters find issues that cannot be automatically fixed, it 
 ## Run Linters
 
 * Lint the `*.ts` files using `TSLint`.
-```
-npm run lint:ts
-```
+  ```
+  npm run lint:ts
+  ```
 * Lint the `*.scss` files using `Stylelint`.
-```
-npm run lint:scss
-```
+  ```
+  npm run lint:scss
+  ```
 * Run all linters in series
-```
-npm run lint
-```
+  ```
+  npm run lint
+  ```
 
 ## Run Linters + Formatters
 
@@ -117,17 +115,17 @@ _Note: Not all linting/formatting errors can be automatically fixed, and will re
 
 * Lint and fix the `*.ts` files using `TSLint` + `Prettier`.
 
-```
-npm run lint-fix:ts
-```
+  ```
+  npm run lint-fix:ts
+  ```
 * Lint and fix the `*.scss` files using `Stylelint`.
-```
-npm run lint-fix:scss
-```
+  ```
+  npm run lint-fix:scss
+  ```
 * Run all linters and fix all problems, in series
-```
-npm run lint-fix
-```
+  ```
+  npm run lint-fix
+  ```
 
 # Testing
 
@@ -141,19 +139,23 @@ npm run lint-fix
 
 * Run the unit tests with `watch=true`
 
-```
-npm run tests
-```
-* Run the unit tests with `watch=false`
-```
-npm run tests-ci
-```
+  View the live reload test output at `localhost:9876`
+
+  ```
+  npm run tests
+  ```
+* Run the unit tests with `watch=false` and run the coverage report
+
+  View the coverage report at `./coverage/index.html`
+  ```
+  npm run tests-ci
+  ```
 * Run the end-to-end tests
 
   Before running the tests make sure you are serving the app via `ng serve`.
-```
-npm run e2e
-```
+  ```
+  npm run e2e
+  ```
 
 # Code Scaffolding Using Angular CLI
 
