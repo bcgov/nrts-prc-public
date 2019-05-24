@@ -12,7 +12,7 @@ import { CommentPeriod } from 'app/models/commentperiod';
 import { Decision } from 'app/models/decision';
 import { Feature } from 'app/models/feature';
 
-fdescribe('ApplicationService', () => {
+describe('ApplicationService', () => {
   let service;
   const apiServiceStub = {
     getApplication(id: string) {

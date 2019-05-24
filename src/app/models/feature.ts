@@ -1,5 +1,5 @@
 //
-// this is the data structure as returned by BCGW
+// this is the data structure as returned by Tantalis
 //
 export class Feature {
   geometry: {
