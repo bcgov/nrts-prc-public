@@ -3,7 +3,6 @@ import { HttpClient, HttpResponse } from '@angular/common/http';
 
 import { Observable, of, combineLatest, merge, throwError } from 'rxjs';
 import { map, mergeMap, toArray } from 'rxjs/operators';
-import * as _ from 'lodash';
 
 import { Application } from 'app/models/application';
 import { Comment } from 'app/models/comment';
@@ -13,6 +12,46 @@ import { Document } from 'app/models/document';
 import { Feature } from 'app/models/feature';
 import { User } from 'app/models/user';
 
+/**
+ * Supported query param field modifiers used by the api to interpret the query param value.
+ *
+ * @export
+ * @enum {number}
+ */
+export enum QueryParamModifier {
+  Equal = 'eq',
+  Not_Equal = 'ne',
+  Since = 'since',
+  Until = 'until'
+}
+
+/**
+ * A complete set of query param fields used to make a single call to the api.
+ *
+ * @export
+ * @interface IQueryParamSet
+ */
+export interface IQueryParamSet {
+  [key: string]: IQueryParamValue;
+}
+
+/**
+ * A single query param field with optional modifier.
+ *
+ * @export
+ * @interface IQueryParamValue
+ */
+export interface IQueryParamValue {
+  value: any;
+  modifier?: QueryParamModifier;
+}
+
+/**
+ * Methods for calling the API (backend server).
+ *
+ * @export
+ * @class ApiService
+ */
 @Injectable()
 export class ApiService {
   // public token: string;
@@ -84,6 +123,13 @@ export class ApiService {
     }
   }
 
+  /**
+   * Generic error handler that logs the error before re-throwing the original error.
+   *
+   * @param {*} error
+   * @returns {Observable<never>}
+   * @memberof ApiService
+   */
   handleError(error: any): Observable<never> {
     const reason = error.message
       ? error.message
@@ -94,48 +140,60 @@ export class ApiService {
     return throwError(error);
   }
 
-  //
-  // Applications
-  //
-  getCountApplications(params: object): Observable<number> {
+  /**
+   * Fetches the count of applications that match the given query parameter filters.
+   *
+   * @param {IQueryParamSet} params query parameters to filter applications.
+   * @returns {Observable<number>}
+   * @memberof ApiService
+   */
+  getCountApplications(params: IQueryParamSet): Observable<number> {
     let queryString = 'application?';
-    if (params['cpStartSince']) {
-      queryString += `cpStart[since]=${params['cpStartSince']}&`;
+
+    if (params['cpStartSince'] && params['cpStartSince'].value) {
+      queryString += `cpStart[since]=${params['cpStartSince'].value}&`;
     }
-    if (params['cpStartUntil']) {
-      queryString += `cpStart[until]=${params['cpStartUntil']}&`;
+    if (params['cpStartUntil'] && params['cpStartUntil'].value) {
+      queryString += `cpStart[until]=${params['cpStartUntil'].value}&`;
     }
-    if (params['cpEndSince']) {
-      queryString += `cpEnd[since]=${params['cpEndSince']}&`;
+    if (params['cpEndSince'] && params['cpEndSince'].value) {
+      queryString += `cpEnd[since]=${params['cpEndSince'].value}&`;
     }
-    if (params['cpEndUntil']) {
-      queryString += `cpEnd[until]=${params['cpEndUntil']}&`;
+    if (params['cpEndUntil'] && params['cpEndUntil'].value) {
+      queryString += `cpEnd[until]=${params['cpEndUntil'].value}&`;
     }
     if (params['appStatuses']) {
-      params['appStatuses'].forEach((status: string) => (queryString += `status[eq]=${status}&`));
+      params['appStatuses'].value.forEach((status: string) => (queryString += `status[eq]=${status}&`));
+    }
+    if (params['appReasons']) {
+      params['appReasons'].value.forEach(
+        (reason: string) => (queryString += `reason[${params['appReasons'].modifier}]=${encodeURIComponent(reason)}&`)
+      );
     }
     if (params['applicant']) {
-      queryString += `client=${encodeURIComponent(params['applicant'])}&`;
+      queryString += `client=${encodeURIComponent(params['applicant'].value)}&`;
     }
     if (params['purposes']) {
-      params['purposes'].forEach((purpose: string) => (queryString += `purpose[eq]=${encodeURIComponent(purpose)}&`));
+      params['purposes'].value.forEach(
+        (purpose: string) => (queryString += `purpose[eq]=${encodeURIComponent(purpose)}&`)
+      );
     }
     if (params['subpurposes']) {
-      params['subpurposes'].forEach(
+      params['subpurposes'].value.forEach(
         (subpurpose: string) => (queryString += `subpurpose[eq]=${encodeURIComponent(subpurpose)}&`)
       );
     }
-    if (params['publishSince']) {
-      queryString += `publishDate[since]=${params['publishSince']}&`;
+    if (params['publishSince'] && params['publishSince'].value) {
+      queryString += `publishDate[since]=${params['publishSince'].value}&`;
     }
-    if (params['publishUntil']) {
-      queryString += `publishDate[until]=${params['publishUntil']}&`;
+    if (params['publishUntil'] && params['publishUntil'].value) {
+      queryString += `publishDate[until]=${params['publishUntil'].value}&`;
     }
-    if (params['coordinates']) {
-      queryString += `centroid=${params['coordinates']}&`;
+    if (params['coordinates'] && params['coordinates'].value) {
+      queryString += `centroid=${params['coordinates'].value}&`;
     }
 
-    if (!params['clidDtid']) {
+    if (!params['clidDtid'] || !params['clidDtid'].value) {
       // trim the last ? or &
       queryString = queryString.slice(0, -1);
 
@@ -146,12 +204,12 @@ export class ApiService {
     } else {
       // query for both CLID and DTID
       const clid = this.http
-        .head<HttpResponse<object>>(`${this.apiPath}/${queryString}cl_file=${params['clidDtid']}`, {
+        .head<HttpResponse<object>>(`${this.apiPath}/${queryString}cl_file=${params['clidDtid'].value}`, {
           observe: 'response'
         })
         .pipe(map(res => parseInt(res.headers.get('x-total-count'), 10)));
       const dtid = this.http
-        .head<HttpResponse<object>>(`${this.apiPath}/${queryString}tantalisId=${params['clidDtid']}`, {
+        .head<HttpResponse<object>>(`${this.apiPath}/${queryString}tantalisId=${params['clidDtid'].value}`, {
           observe: 'response'
         })
         .pipe(map(res => parseInt(res.headers.get('x-total-count'), 10)));
@@ -161,7 +219,15 @@ export class ApiService {
     }
   }
 
-  getApplications(params: object): Observable<Application[]> {
+  /**
+   * Fetch all applications that match the given query parameters filters.
+   *
+   * @param {IQueryParamSet} params query parameters to filter applications.
+   * @returns {Observable<Application[]>}
+   * @memberof ApiService
+   */
+  getApplications(params: IQueryParamSet): Observable<Application[]> {
+    // requested application fields
     const fields = [
       'agency',
       'areaHectares',
@@ -176,6 +242,7 @@ export class ApiService {
       'publishDate',
       'purpose',
       'status',
+      'reason',
       'statusHistoryEffectiveDate',
       'subpurpose',
       'subtype',
@@ -185,55 +252,66 @@ export class ApiService {
     ];
 
     let queryString = 'application?';
-    if (params['pageNum']) {
-      queryString += `pageNum=${params['pageNum']}&`;
+
+    if (params['pageNum'] && params['pageNum'].value) {
+      queryString += `pageNum=${params['pageNum'].value}&`;
     }
-    if (params['pageSize']) {
-      queryString += `pageSize=${params['pageSize']}&`;
+    if (params['pageSize'] && params['pageSize'].value) {
+      queryString += `pageSize=${params['pageSize'].value}&`;
     }
-    if (params['cpStartSince']) {
-      queryString += `cpStart[since]=${params['cpStartSince']}&`;
+    if (params['cpStartSince'] && params['cpStartSince'].value) {
+      queryString += `cpStart[since]=${params['cpStartSince'].value}&`;
     }
-    if (params['cpStartUntil']) {
-      queryString += `cpStart[until]=${params['cpStartUntil']}&`;
+    if (params['cpStartUntil'] && params['cpStartUntil'].value) {
+      queryString += `cpStart[until]=${params['cpStartUntil'].value}&`;
     }
-    if (params['cpEndSince']) {
-      queryString += `cpEnd[since]=${params['cpEndSince']}&`;
+    if (params['cpEndSince'] && params['cpEndSince'].value) {
+      queryString += `cpEnd[since]=${params['cpEndSince'].value}&`;
     }
-    if (params['cpEndUntil']) {
-      queryString += `cpEnd[until]=${params['cpEndUntil']}&`;
+    if (params['cpEndUntil'] && params['cpEndUntil'].value) {
+      queryString += `cpEnd[until]=${params['cpEndUntil'].value}&`;
     }
     if (params['appStatuses']) {
-      params['appStatuses'].forEach((status: string) => (queryString += `status[eq]=${status}&`));
+      params['appStatuses'].value.forEach((status: string) => (queryString += `status[eq]=${status}&`));
     }
-    if (params['applicant']) {
-      queryString += `client=${encodeURIComponent(params['applicant'])}&`;
+    if (params['appReasons']) {
+      params['appReasons'].value.forEach(
+        (reason: string) => (queryString += `reason[${params['appReasons'].modifier}]=${encodeURIComponent(reason)}&`)
+      );
+    }
+    if (params['applicant'] && params['applicant'].value) {
+      queryString += `client=${encodeURIComponent(params['applicant'].value)}&`;
     }
     if (params['purposes']) {
-      params['purposes'].forEach((purpose: string) => (queryString += `purpose[eq]=${encodeURIComponent(purpose)}&`));
+      params['purposes'].value.forEach(
+        (purpose: string) => (queryString += `purpose[eq]=${encodeURIComponent(purpose)}&`)
+      );
     }
     if (params['subpurposes']) {
-      params['subpurposes'].forEach(
+      params['subpurposes'].value.forEach(
         (subpurpose: string) => (queryString += `subpurpose[eq]=${encodeURIComponent(subpurpose)}&`)
       );
     }
-    if (params['publishSince']) {
-      queryString += `publishDate[since]=${params['publishSince']}&`;
+    if (params['publishSince'] && params['publishSince'].value) {
+      queryString += `publishDate[since]=${params['publishSince'].value}&`;
     }
-    if (params['publishUntil']) {
-      queryString += `publishDate[until]=${params['publishUntil']}&`;
+    if (params['publishUntil'] && params['publishUntil'].value) {
+      queryString += `publishDate[until]=${params['publishUntil'].value}&`;
     }
-    if (params['coordinates']) {
-      queryString += `centroid=${params['coordinates']}&`;
+    if (params['coordinates'] && params['coordinates'].value) {
+      queryString += `centroid=${params['coordinates'].value}&`;
     }
+
     queryString += `fields=${this.buildValues(fields)}`;
 
-    if (!params['clidDtid']) {
+    if (!params['clidDtid'] || !params['clidDtid'].value) {
       return this.http.get<Application[]>(`${this.apiPath}/${queryString}`);
     } else {
       // query for both CLID and DTID
-      const clid = this.http.get<Application[]>(`${this.apiPath}/${queryString}&cl_file=${params['clidDtid']}`);
-      const dtid = this.http.get<Application[]>(`${this.apiPath}/${queryString}&tantalisId=${params['clidDtid']}`);
+      const clid = this.http.get<Application[]>(`${this.apiPath}/${queryString}&cl_file=${params['clidDtid'].value}`);
+      const dtid = this.http.get<Application[]>(
+        `${this.apiPath}/${queryString}&tantalisId=${params['clidDtid'].value}`
+      );
 
       // return merged results, using toArray to wait for all results (ie, single emit)
       // this is fine performance-wise because there should be no more than a few results
@@ -244,7 +322,15 @@ export class ApiService {
     }
   }
 
+  /**
+   * Fetch a single application by its unique id.
+   *
+   * @param {string} id
+   * @returns {Observable<Application[]>}
+   * @memberof ApiService
+   */
   getApplication(id: string): Observable<Application[]> {
+    // requested application fields
     const fields = [
       'agency',
       'areaHectares',
@@ -259,6 +345,7 @@ export class ApiService {
       'publishDate',
       'purpose',
       'status',
+      'reason',
       'statusHistoryEffectiveDate',
       'subpurpose',
       'subtype',
@@ -319,6 +406,7 @@ export class ApiService {
   // Comments
   //
   getCommentsByPeriodId(periodId: string): Observable<Comment[]> {
+    // requested application fields
     const fields = [
       '_addedBy',
       '_commentPeriod',
@@ -334,6 +422,7 @@ export class ApiService {
   }
 
   getComment(id: string): Observable<Comment[]> {
+    // requested application fields
     const fields = [
       '_addedBy',
       '_commentPeriod',
@@ -399,15 +488,21 @@ export class ApiService {
     return this.http.get<User[]>(`${this.apiPath}/${queryString}`);
   }
 
-  //
-  // Local helpers
-  //
-  private buildValues(collection: any[]): string {
-    let values = '';
-    _.each(collection, a => {
-      values += a + '|';
-    });
-    // trim the last |
-    return values.replace(/\|$/, '');
+  /**
+   * Converts an array of strings into a single string whose values are separated by a pipe '|' symbol.
+   *
+   * Example: ['bird','dog','cat'] -> 'bird|dog|cat'
+   *
+   * @private
+   * @param {string[]} collection
+   * @returns {string}
+   * @memberof ApiService
+   */
+  private buildValues(collection: string[]): string {
+    if (!collection || collection.length <= 0) {
+      return '';
+    }
+
+    return collection.join('|');
   }
 }

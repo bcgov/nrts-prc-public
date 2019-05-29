@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, OnDestroy, Input, ElementRef } from '@angular/core';
+import { Component, OnDestroy, Input, ElementRef, OnChanges, SimpleChanges } from '@angular/core';
 import * as L from 'leaflet';
 
 import { Application } from 'app/models/application';
@@ -8,49 +8,68 @@ import { Application } from 'app/models/application';
   templateUrl: './details-map.component.html',
   styleUrls: ['./details-map.component.scss']
 })
-export class DetailsMapComponent implements AfterViewInit, OnDestroy {
+export class DetailsMapComponent implements OnChanges, OnDestroy {
   @Input() application: Application = null;
 
   public map: L.Map;
-  public appFG = L.featureGroup(); // group of layers for subject app
+  public appFG: L.FeatureGroup; // group of layers for subject app
+
+  // custom reset view control
+  public resetViewControl = L.Control.extend({
+    options: {
+      position: 'bottomright'
+    },
+    onAdd: () => {
+      const element = L.DomUtil.create('button');
+
+      element.title = 'Reset view';
+      element.innerText = 'refresh'; // material icon name
+      element.onclick = () => this.fitBounds();
+      element.className = 'material-icons map-reset-control';
+
+      // prevent underlying map actions for these events
+      L.DomEvent.disableClickPropagation(element); // includes double-click
+      L.DomEvent.disableScrollPropagation(element);
+
+      return element;
+    }
+  });
+
+  // map imagery definition
+  public World_Imagery = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {
+      attribution:
+        // tslint:disable-next-line:max-line-length
+        'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      maxZoom: 16.4,
+      noWrap: true
+    }
+  );
 
   constructor(private elementRef: ElementRef) {}
 
-  ngAfterViewInit() {
-    // custom control to reset map view
-    const resetViewControl = L.Control.extend({
-      options: {
-        position: 'bottomright'
-      },
-      onAdd: () => {
-        const element = L.DomUtil.create('button');
+  public ngOnChanges(changes: SimpleChanges) {
+    if (changes.application) {
+      this.resetMap();
+      this.createMap();
+    }
+  }
 
-        element.title = 'Reset view';
-        element.innerText = 'refresh'; // material icon name
-        element.onclick = () => this.fitBounds();
-        element.className = 'material-icons map-reset-control';
+  public createMap() {
+    this.createBasicMap();
+    this.addScale();
+    this.addZoomControl();
+    this.addResetViewControl();
+    this.addFeatures();
+    this.fixMap();
+  }
 
-        // prevent underlying map actions for these events
-        L.DomEvent.disableClickPropagation(element); // includes double-click
-        L.DomEvent.disableScrollPropagation(element);
-
-        return element;
-      }
-    });
-
-    const World_Imagery = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {
-        attribution:
-          // tslint:disable-next-line:max-line-length
-          'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-        maxZoom: 16.4,
-        noWrap: true
-      }
-    );
+  public createBasicMap() {
+    this.appFG = L.featureGroup();
 
     this.map = L.map('map', {
-      layers: [World_Imagery],
+      layers: [this.World_Imagery],
       zoomControl: false, // will be added manually below
       attributionControl: false, // assume not needed in thumbnail
       scrollWheelZoom: false, // not desired in thumbnail
@@ -59,18 +78,28 @@ export class DetailsMapComponent implements AfterViewInit, OnDestroy {
       zoomDelta: 3, // for faster zooming in thumbnail
       maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)) // restrict view to "the world"
     });
+  }
 
-    // add scale control
-    L.control.scale({ position: 'bottomleft' }).addTo(this.map);
+  public addScale() {
+    if (this.map) {
+      L.control.scale({ position: 'bottomleft' }).addTo(this.map);
+    }
+  }
 
-    // add zoom control
-    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+  public addZoomControl() {
+    if (this.map) {
+      L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+    }
+  }
 
-    // add reset view control
-    this.map.addControl(new resetViewControl());
-    // draw application features
-    if (this.application) {
-      // safety check
+  public addResetViewControl() {
+    if (this.map) {
+      this.map.addControl(new this.resetViewControl());
+    }
+  }
+
+  public addFeatures() {
+    if (this.map && this.application) {
       this.application.features.forEach(f => {
         const feature = JSON.parse(JSON.stringify(f));
         const featureObj: GeoJSON.Feature<any> = feature;
@@ -84,8 +113,6 @@ export class DetailsMapComponent implements AfterViewInit, OnDestroy {
       });
       this.map.addLayer(this.appFG);
     }
-
-    this.fixMap();
   }
 
   // to avoid timing conflict with animations (resulting in small map tile at top left of page),
@@ -101,9 +128,11 @@ export class DetailsMapComponent implements AfterViewInit, OnDestroy {
   }
 
   private fitBounds() {
-    const bounds = this.appFG.getBounds();
-    if (bounds && bounds.isValid()) {
-      this.map.fitBounds(bounds, { padding: [20, 20] });
+    if (this.map) {
+      const bounds = this.appFG.getBounds();
+      if (bounds && bounds.isValid()) {
+        this.map.fitBounds(bounds, { padding: [20, 20] });
+      }
     }
   }
 
@@ -171,9 +200,17 @@ export class DetailsMapComponent implements AfterViewInit, OnDestroy {
     return 3; // default
   }
 
-  ngOnDestroy() {
+  public resetMap() {
     if (this.map) {
       this.map.remove();
     }
+
+    if (this.appFG) {
+      this.appFG.remove();
+    }
+  }
+
+  ngOnDestroy() {
+    this.resetMap();
   }
 }
