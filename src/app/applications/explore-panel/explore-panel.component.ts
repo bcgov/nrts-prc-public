@@ -5,11 +5,15 @@ import { takeUntil } from 'rxjs/operators';
 import * as _ from 'lodash';
 import * as moment from 'moment';
 
-import { Constants } from 'app/utils/constants';
 import { ApplicationService } from 'app/services/application.service';
 import { CommentPeriodService } from 'app/services/commentperiod.service';
 import { PurposeInfoModalComponent } from 'app/applications/purpose-info-modal/purpose-info-modal.component';
 import { UrlService } from 'app/services/url.service';
+
+import { StatusCodes, PurposeCodes } from 'app/utils/constants/application';
+import { CommentCodes } from 'app/utils/constants/comment';
+import { ICodeGroup } from 'app/utils/constants/interfaces';
+import { ConstantUtils, CodeType } from 'app/utils/constants/constantUtils';
 
 @Component({
   selector: 'app-explore-panel',
@@ -52,32 +56,31 @@ export class ExplorePanelComponent implements OnInit, OnDestroy {
 
   constructor(
     private modalService: NgbModal,
-    private applicationService: ApplicationService,
-    public commentPeriodService: CommentPeriodService, // also used in template
+    public applicationService: ApplicationService, // used in template
+    public commentPeriodService: CommentPeriodService, // used in template
     private urlService: UrlService
   ) {
     // declare comment period status keys
-    this.cpStatusKeys.push(this.commentPeriodService.OPEN);
-    this.cpStatusKeys.push(this.commentPeriodService.NOT_OPEN);
+    this.cpStatusKeys.push(CommentCodes.OPEN.code);
+    this.cpStatusKeys.push(CommentCodes.NOT_OPEN.code);
 
     // declare application status keys
-    this.appStatusKeys.push(this.applicationService.APPLICATION_UNDER_REVIEW);
-    this.appStatusKeys.push(this.applicationService.APPLICATION_REVIEW_COMPLETE);
-    this.appStatusKeys.push(this.applicationService.DECISION_APPROVED);
-    this.appStatusKeys.push(this.applicationService.DECISION_NOT_APPROVED);
-    this.appStatusKeys.push(this.applicationService.ABANDONED);
+    this.appStatusKeys.push(StatusCodes.APPLICATION_UNDER_REVIEW.code);
+    this.appStatusKeys.push(StatusCodes.APPLICATION_REVIEW_COMPLETE.code);
+    this.appStatusKeys.push(StatusCodes.DECISION_APPROVED.code);
+    this.appStatusKeys.push(StatusCodes.DECISION_NOT_APPROVED.code);
+    this.appStatusKeys.push(StatusCodes.ABANDONED.code);
 
     // declare purpose keys
-    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
-      this.purposeKeys.push(purpose.toUpperCase());
-    });
+    new PurposeCodes()
+      .getCodeGroups()
+      .map((codeGroup: ICodeGroup) => this.purposeKeys.push(codeGroup.code.toUpperCase()));
 
-    // declare subpurpose keys
-    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
-      Constants.subpurposes[purpose].forEach((subpurpose: string) => {
-        this.subpurposeKeys.push(subpurpose.toUpperCase());
-      });
-    });
+    new PurposeCodes()
+      .getCodeGroups()
+      .map((codeGroup: ICodeGroup) =>
+        this.subpurposeKeys.concat(codeGroup.mappedCodes.map(mappedCode => mappedCode.toUpperCase()))
+      );
 
     // initialize temporary filters
     this.cpStatusKeys.forEach(key => {
@@ -329,5 +332,21 @@ export class ExplorePanelComponent implements OnInit, OnDestroy {
       size: 'lg',
       windowClass: 'modal-fixed'
     });
+  }
+
+  /**
+   * Given a status code, returns a user-friendly long status string.
+   *
+   * @param {string} statusCode
+   * @returns {string}
+   * @memberof CommentPeriodService
+   */
+  getStatusStringLong(statusCode: string): string {
+    if (statusCode === CommentCodes.NOT_OPEN.code) {
+      // Even though the status is Not Open, we want to display Closed, as it is less confusing for the average user
+      // Could expand the explore filters to include an option to filter by comment periods that have not yet started
+      return CommentCodes.CLOSED.text.long;
+    }
+    return ConstantUtils.getTextLong(CodeType.COMMENT, statusCode);
   }
 }

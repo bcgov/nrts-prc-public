@@ -1,6 +1,7 @@
 import { Component, HostBinding } from '@angular/core';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
-import { Constants } from 'app/utils/constants';
+import { PurposeCodes } from 'app/utils/constants/application';
+import { ICodeGroup } from 'app/utils/constants/interfaces';
 
 @Component({
   selector: 'app-purpose-info-modal',
@@ -10,7 +11,9 @@ import { Constants } from 'app/utils/constants';
 export class PurposeInfoModalComponent {
   @HostBinding('class') classes = 'modal-content-flex';
 
-  constants = Constants;
+  purposeCodeGroups: ICodeGroup[];
 
-  constructor(public activeModal: NgbActiveModal) {}
+  constructor(public activeModal: NgbActiveModal) {
+    this.purposeCodeGroups = new PurposeCodes().getCodeGroups();
+  }
 }

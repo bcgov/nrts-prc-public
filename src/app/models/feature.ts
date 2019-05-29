@@ -28,6 +28,7 @@ export class Feature {
     TENURE_PURPOSE: string;
     TENURE_STAGE: string;
     TENURE_STATUS: string;
+    TENURE_REASON: string;
     TENURE_SUBPURPOSE: string;
     TENURE_SUBTYPE: string;
     TENURE_TYPE: string;

@@ -12,28 +12,12 @@ import { CommentPeriodService } from './commentperiod.service';
 import { DecisionService } from './decision.service';
 import { FeatureService } from './feature.service';
 
+import { StatusCodes, ReasonCodes } from 'app/utils/constants/application';
+import { ConstantUtils, CodeType } from 'app/utils/constants/constantUtils';
+import { CommentCodes } from 'app/utils/constants/comment';
+
 @Injectable()
 export class ApplicationService {
-  //#region Constants
-  // statuses / query param options
-  readonly ABANDONED = 'AB';
-  readonly APPLICATION_UNDER_REVIEW = 'AUR';
-  readonly APPLICATION_REVIEW_COMPLETE = 'ARC';
-  readonly DECISION_APPROVED = 'DA';
-  readonly DECISION_NOT_APPROVED = 'DNA';
-  readonly UNKNOWN = 'UN'; // special status when no data
-
-  // regions / query param options
-  readonly CARIBOO = 'CA';
-  readonly KOOTENAY = 'KO';
-  readonly LOWER_MAINLAND = 'LM';
-  readonly OMENICA = 'OM';
-  readonly PEACE = 'PE';
-  readonly SKEENA = 'SK';
-  readonly SOUTHERN_INTERIOR = 'SI';
-  readonly VANCOUVER_ISLAND = 'VI';
-  //#endregion
-
   private application: Application = null; // for caching
 
   constructor(
@@ -50,12 +34,14 @@ export class ApplicationService {
     const publishSince = filters.publishFrom ? filters.publishFrom.toISOString() : null;
     const publishUntil = filters.publishTo ? filters.publishTo.toISOString() : null;
 
-    // convert application statuses from codes to strings
-    const appStatuses = _.flatMap(filters.appStatuses, statusCode => this.getTantalisStatus(statusCode));
+    // convert application statuses from codes to array of strings
+    const appStatuses = _.flatMap(filters.appStatuses, statusCode =>
+      ConstantUtils.getMappedCodes(CodeType.STATUS, statusCode)
+    );
 
     // handle comment period filtering
-    const cpOpen = filters.cpStatuses.includes(this.commentPeriodService.OPEN);
-    const cpNotOpen = filters.cpStatuses.includes(this.commentPeriodService.NOT_OPEN);
+    const cpOpen = filters.cpStatuses.includes(CommentCodes.OPEN.code);
+    const cpNotOpen = filters.cpStatuses.includes(CommentCodes.NOT_OPEN.code);
 
     // if both cpOpen and cpNotOpen or neither cpOpen nor cpNotOpen then use no cpStart or cpEnd filters
     if ((cpOpen && cpNotOpen) || (!cpOpen && !cpNotOpen)) {
@@ -135,12 +121,14 @@ export class ApplicationService {
     const publishSince = filters.publishFrom ? filters.publishFrom.toISOString() : null;
     const publishUntil = filters.publishTo ? filters.publishTo.toISOString() : null;
 
-    // convert application statuses from codes to strings
-    const appStatuses = _.flatMap(filters.appStatuses, statusCode => this.getTantalisStatus(statusCode));
+    // convert application statuses from codes to array of strings
+    const appStatuses = _.flatMap(filters.appStatuses, statusCode =>
+      ConstantUtils.getMappedCodes(CodeType.STATUS, statusCode)
+    );
 
     // handle comment period filtering
-    const cpOpen = filters.cpStatuses.includes(this.commentPeriodService.OPEN);
-    const cpNotOpen = filters.cpStatuses.includes(this.commentPeriodService.NOT_OPEN);
+    const cpOpen = filters.cpStatuses.includes(CommentCodes.OPEN.code);
+    const cpNotOpen = filters.cpStatuses.includes(CommentCodes.NOT_OPEN.code);
 
     // if both cpOpen and cpNotOpen or neither cpOpen nor cpNotOpen then use no cpStart or cpEnd filters
     if ((cpOpen && cpNotOpen) || (!cpOpen && !cpNotOpen)) {
@@ -167,6 +155,7 @@ export class ApplicationService {
             res.forEach(application => {
               applications.push(new Application(application));
             });
+            console.log('1: ', applications);
             return applications;
           }),
           catchError(this.api.handleError)
@@ -205,6 +194,7 @@ export class ApplicationService {
             res.forEach(application => {
               applications.push(new Application(application));
             });
+            console.log('2: ', applications);
             return applications;
           }),
           catchError(this.api.handleError)
@@ -250,6 +240,7 @@ export class ApplicationService {
         res.forEach(application => {
           applications.push(new Application(application));
         });
+        console.log('3: ', applications);
         return applications;
       }),
       catchError(this.api.handleError)
@@ -279,19 +270,14 @@ export class ApplicationService {
 
         const promises: Array<Promise<any>> = [];
 
-        // derive region code
-        application.region = this.getRegionCode(application.businessUnit);
-
-        // application status code
-        application.appStatusCode = this.getStatusCode(application.status);
-
-        // user-friendly application status
-        application.appStatus = this.getLongStatusString(application.appStatusCode);
-
         // derive retire date
         if (
           application.statusHistoryEffectiveDate &&
-          [this.DECISION_APPROVED, this.DECISION_NOT_APPROVED, this.ABANDONED].includes(application.appStatusCode)
+          [
+            StatusCodes.DECISION_APPROVED.code,
+            StatusCodes.DECISION_NOT_APPROVED.code,
+            StatusCodes.ABANDONED.code
+          ].includes(ConstantUtils.getParam(CodeType.STATUS, application.status))
         ) {
           application['retireDate'] = moment(application.statusHistoryEffectiveDate)
             .endOf('day')
@@ -326,11 +312,11 @@ export class ApplicationService {
               application.currentPeriod = this.commentPeriodService.getCurrent(periods); // may be null
 
               // comment period status code
-              application.cpStatusCode = this.commentPeriodService.getStatusCode(application.currentPeriod);
+              application.cpStatus = this.commentPeriodService.getCode(application.currentPeriod);
 
               // derive days remaining for display
               // use moment to handle Daylight Saving Time changes
-              if (this.commentPeriodService.isOpen(application.cpStatusCode)) {
+              if (this.commentPeriodService.isOpen(application.cpStatus)) {
                 const now = new Date();
                 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 application.currentPeriod['daysRemaining'] =
@@ -365,182 +351,116 @@ export class ApplicationService {
   }
 
   /**
-   * Map Tantalis Status to status code.
+   * Returns true if the application has an abandoned status AND an amendment reason.
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an abandoned status AND an amendment reason, false otherwise.
+   * @memberof ApplicationService
    */
-  getStatusCode(statusString: string): string {
-    if (statusString) {
-      switch (statusString.toUpperCase()) {
-        case 'ABANDONED':
-        case 'CANCELLED':
-        case 'OFFER NOT ACCEPTED':
-        case 'OFFER RESCINDED':
-        case 'RETURNED':
-        case 'REVERTED':
-        case 'SOLD':
-        case 'SUSPENDED':
-        case 'WITHDRAWN':
-          return this.ABANDONED;
-
-        case 'ACCEPTED':
-        case 'ALLOWED':
-        case 'PENDING':
-        case 'RECEIVED':
-          return this.APPLICATION_UNDER_REVIEW;
-
-        case 'OFFER ACCEPTED':
-        case 'OFFERED':
-          return this.APPLICATION_REVIEW_COMPLETE;
-
-        case 'ACTIVE':
-        case 'COMPLETED':
-        case 'DISPOSITION IN GOOD STANDING':
-        case 'EXPIRED':
-        case 'HISTORIC':
-          return this.DECISION_APPROVED;
-
-        case 'DISALLOWED':
-          return this.DECISION_NOT_APPROVED;
-
-        case 'NOT USED':
-        case 'PRE-TANTALIS':
-          return this.UNKNOWN;
-      }
-    }
-    return this.UNKNOWN;
+  isAmendment(application: Application): boolean {
+    return (
+      application &&
+      application.status === StatusCodes.ABANDONED.code &&
+      application.reason === ReasonCodes.AMENDMENT.code
+    );
   }
 
   /**
-   * Map status code to Tantalis Status(es).
+   * Returns true if the application has an abandoned status and does not have an amendment reason.
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an abandoned status and does not have an amendment
+   * reason, false otherwise.
+   * @memberof ApplicationService
    */
-  getTantalisStatus(statusCode: string): string[] {
-    if (statusCode) {
-      switch (statusCode.toUpperCase()) {
-        case this.ABANDONED:
-          return [
-            'ABANDONED',
-            'CANCELLED',
-            'OFFER NOT ACCEPTED',
-            'OFFER RESCINDED',
-            'RETURNED',
-            'REVERTED',
-            'SOLD',
-            'SUSPENDED',
-            'WITHDRAWN'
-          ];
-        case this.APPLICATION_UNDER_REVIEW:
-          return ['ACCEPTED', 'ALLOWED', 'PENDING', 'RECEIVED'];
-        case this.APPLICATION_REVIEW_COMPLETE:
-          return ['OFFER ACCEPTED', 'OFFERED'];
-        case this.DECISION_APPROVED:
-          return ['ACTIVE', 'COMPLETED', 'DISPOSITION IN GOOD STANDING', 'EXPIRED', 'HISTORIC'];
-        case this.DECISION_NOT_APPROVED:
-          return ['DISALLOWED'];
-      }
-    }
-    return null as string[];
+  isAbandoned(application: Application): boolean {
+    return (
+      application &&
+      application.status === StatusCodes.ABANDONED.code &&
+      (!application.reason || application.reason !== ReasonCodes.AMENDMENT.code)
+    );
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an under review status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isApplicationUnderReview(application: Application): boolean {
+    return application && application.status === StatusCodes.APPLICATION_UNDER_REVIEW.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has a review complete status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isApplicationReviewComplete(application: Application): boolean {
+    return application && application.status === StatusCodes.APPLICATION_REVIEW_COMPLETE.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has a decision approved status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isDecisionApproved(application: Application): boolean {
+    return application && application.status === StatusCodes.DECISION_APPROVED.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has a decision not approved status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isDecisionNotApproved(application: Application): boolean {
+    return application && application.status === StatusCodes.DECISION_NOT_APPROVED.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an unknown status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isUnknown(application: Application): boolean {
+    return application && application.status === StatusCodes.UNKNOWN.code;
   }
 
   /**
    * Given a status code, returns a short user-friendly status string.
+   *
+   * @param {string} statusCode
+   * @returns {string}
+   * @memberof ApplicationService
    */
-  getShortStatusString(statusCode: string): string {
-    if (statusCode) {
-      switch (statusCode) {
-        case this.ABANDONED:
-          return 'Abandoned';
-        case this.APPLICATION_UNDER_REVIEW:
-          return 'Under Review';
-        case this.APPLICATION_REVIEW_COMPLETE:
-          return 'Decision Pending';
-        case this.DECISION_APPROVED:
-          return 'Approved';
-        case this.DECISION_NOT_APPROVED:
-          return 'Not Approved';
-        case this.UNKNOWN:
-          return 'Unknown';
-      }
-    }
-    return null as string;
+  getStatusStringShort(statusCode: string): string {
+    return ConstantUtils.getStringShort(CodeType.STATUS, statusCode);
   }
 
   /**
-   * Given a status code, returns a long user-friendly status string.
+   * Returns the application long status string.
+   *
+   * @param {Application} application
+   * @returns {string}
+   * @memberof ApplicationService
    */
-  getLongStatusString(statusCode: string): string {
-    if (statusCode) {
-      switch (statusCode) {
-        case this.ABANDONED:
-          return 'Abandoned';
-        case this.APPLICATION_UNDER_REVIEW:
-          return 'Application Under Review';
-        case this.APPLICATION_REVIEW_COMPLETE:
-          return 'Application Review Complete - Decision Pending';
-        case this.DECISION_APPROVED:
-          return 'Decision: Approved - Tenure Issued';
-        case this.DECISION_NOT_APPROVED:
-          return 'Decision: Not Approved';
-        case this.UNKNOWN:
-          return 'Unknown Status';
-      }
+  getStatusStringLong(application: Application): string {
+    if (application && application.reason === ReasonCodes.AMENDMENT.code) {
+      return ConstantUtils.getTextLong(CodeType.REASON, application.reason);
     }
-    return null as string;
-  }
 
-  isAbandoned(statusCode: string): boolean {
-    return statusCode === this.ABANDONED;
-  }
-
-  isApplicationUnderReview(statusCode: string): boolean {
-    return statusCode === this.APPLICATION_UNDER_REVIEW;
-  }
-
-  isApplicationReviewComplete(statusCode: string): boolean {
-    return statusCode === this.APPLICATION_REVIEW_COMPLETE;
-  }
-
-  isDecisionApproved(statusCode: string): boolean {
-    return statusCode === this.DECISION_APPROVED;
-  }
-
-  isDecisionNotApproved(statusCode: string): boolean {
-    return statusCode === this.DECISION_NOT_APPROVED;
-  }
-
-  isUnknown(statusCode: string): boolean {
-    return statusCode === this.UNKNOWN;
-  }
-
-  /**
-   * Returns region code.
-   */
-  getRegionCode(businessUnit: string): string {
-    return businessUnit && businessUnit.toUpperCase().split(' ')[0];
-  }
-
-  /**
-   * Given a region code, returns a user-friendly region string.
-   */
-  getRegionString(abbrev: string): string {
-    if (abbrev) {
-      switch (abbrev) {
-        case this.CARIBOO:
-          return 'Cariboo, Williams Lake';
-        case this.KOOTENAY:
-          return 'Kootenay, Cranbrook';
-        case this.LOWER_MAINLAND:
-          return 'Lower Mainland, Surrey';
-        case this.OMENICA:
-          return 'Omenica/Peace, Prince George';
-        case this.PEACE:
-          return 'Peace, Ft. St. John';
-        case this.SKEENA:
-          return 'Skeena, Smithers';
-        case this.SOUTHERN_INTERIOR:
-          return 'Thompson Okanagan, Kamloops';
-        case this.VANCOUVER_ISLAND:
-          return 'West Coast, Nanaimo';
-      }
-    }
-    return null as string;
+    return (
+      (application && ConstantUtils.getTextLong(CodeType.STATUS, application.status)) || StatusCodes.UNKNOWN.text.long
+    );
   }
 }

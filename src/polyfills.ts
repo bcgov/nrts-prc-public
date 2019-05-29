@@ -18,6 +18,8 @@
  * BROWSER POLYFILLS
  */
 
+/* These IE specific polyfills may be removable in future as part of angular cli 7.3: https://github.com/angular/angular-cli/pull/13403 */
+
 /* IE9, IE10 and IE11 requires all of the following polyfills. */
 import 'core-js/es6/symbol';
 import 'core-js/es6/object';
