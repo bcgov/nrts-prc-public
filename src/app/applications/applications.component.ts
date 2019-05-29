@@ -15,7 +15,6 @@ import { DetailsPanelComponent } from './details-panel/details-panel.component';
 import { SplashModalComponent, SplashModalResult } from './splash-modal/splash-modal.component';
 import { Application } from 'app/models/application';
 import { ApplicationService } from 'app/services/application.service';
-import { ConfigService } from 'app/services/config.service';
 import { UrlService } from 'app/services/url.service';
 
 export interface IFiltersType {
@@ -80,7 +79,6 @@ export class ApplicationsComponent implements OnInit, AfterViewInit, OnDestroy {
     private modalService: NgbModal,
     private router: Router,
     private applicationService: ApplicationService,
-    public configService: ConfigService,
     public urlService: UrlService,
     private renderer: Renderer2
   ) {
@@ -232,14 +230,14 @@ export class ApplicationsComponent implements OnInit, AfterViewInit, OnDestroy {
             }
 
             // get all observables sequentially
-            const start = new Date().getTime(); // for profiling
+            // const start = new Date().getTime(); // for profiling
             this.observablesSub = concat(...observables)
               .pipe(
                 operators.takeUntil(this.ngUnsubscribe),
                 operators.finalize(() => {
                   this.isLoading = false;
                   this.hideSnackbar();
-                  console.log('got', this.apps.length, 'apps in', new Date().getTime() - start, 'ms');
+                  // console.log('got', this.apps.length, 'apps in', new Date().getTime() - start, 'ms');
                 })
               )
               .subscribe(

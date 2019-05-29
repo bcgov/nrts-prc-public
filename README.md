@@ -85,8 +85,8 @@ Recommend installing the [VSCode Prettier extension](https://github.com/prettier
 * TSlint: tslint.json
 * Prettier: .prettierrc .prettierignore
 * Stylelint: .styleintrc
-* Husky: package.json
-* lint-staged: package.json
+* Husky: .huskyrc
+* lint-staged: .lintstagedrc
 
 ### Pre-Commit Hooks
 
@@ -245,3 +245,36 @@ For dev, test, and prod builds on OpenShift/Jenkins see [openshift/README.md](ht
 # How to Contribute
 
 Create pull requests against the `master` branch.
+
+# VSCode Extensions
+
+A list of recommended/helpful VS Code extensions.
+
+## Linting/Formatting
+
+* TSLint
+* ESLint
+* Prettier - Code formatter
+* stylelint
+* EditorConfig for VS Code
+
+## Languages
+
+* npm
+* Angular Extension pack
+  * This may include 'Beautify' which should be disabled as we are using Prettier.
+* JavaScript (ES6) code snippets
+
+## General
+
+* Auto Comment Blocks
+* Auto-Open Markdown Preview
+* autoDocstring
+* Document This
+* Better Comments
+* Bracket Pair Colorizer
+* Code Spell Checker
+* Declarative Jenkinsfile Support
+* Path intellisense
+* SCSS intellisense
+* Shell launcher

@@ -23,15 +23,16 @@
       <section class="status-section">
         <div class="status"
           [ngClass]="{
-            'abandoned':        applicationService.isAbandoned(application.appStatusCode),
-            'under-review':     applicationService.isApplicationUnderReview(application.appStatusCode),
-            'review-complete':  applicationService.isApplicationReviewComplete(application.appStatusCode),
-            'approved':         applicationService.isDecisionApproved(application.appStatusCode),
-            'not-approved':     applicationService.isDecisionNotApproved(application.appStatusCode),
-            'unknown':          applicationService.isUnknown(application.appStatusCode)
+            'amendment':        applicationService.isAmendment(application),
+            'abandoned':        applicationService.isAbandoned(application),
+            'under-review':     applicationService.isApplicationUnderReview(application),
+            'review-complete':  applicationService.isApplicationReviewComplete(application),
+            'approved':         applicationService.isDecisionApproved(application),
+            'not-approved':     applicationService.isDecisionNotApproved(application),
+            'unknown':          applicationService.isUnknown(application)
           }">
           <div>
-            <strong>{{application.appStatus}}</strong>
+            <strong>{{applicationService.getStatusStringLong(application)}}</strong>
           </div>
         </div>
         <div class="status-msg status-highlight" *ngIf="application['retireDate']">
@@ -40,16 +41,16 @@
       </section>
       <div *ngIf="application.currentPeriod">
         <section class="status-section" *ngVar="application.currentPeriod['daysRemaining'] as daysRemaining">
-          <div class="status" [ngClass]="commentPeriodService.isOpen(application.cpStatusCode) ? 'commenting-open':'commenting-closed'">
-            <div><strong>{{commentPeriodService.getStatusString(application.cpStatusCode)}} <span *ngIf="commentPeriodService.isOpen(application.cpStatusCode)">({{daysRemaining === 1 ? daysRemaining + " day" : daysRemaining + " days"}} remaining)</span></strong></div>
+          <div class="status" [ngClass]="commentPeriodService.isOpen(application.cpStatus) ? 'commenting-open':'commenting-closed'">
+            <div><strong>{{commentPeriodService.getStatusStringLong(application.cpStatus)}} <span *ngIf="commentPeriodService.isOpen(application.cpStatus)">({{daysRemaining === 1 ? daysRemaining + " day" : daysRemaining + " days"}} remaining)</span></strong></div>
           </div>
-          <div class="status-msg" *ngIf="commentPeriodService.isOpen(application.cpStatusCode)">
+          <div class="status-msg" *ngIf="commentPeriodService.isOpen(application.cpStatus)">
             This application is currently accepting comments for the next {{daysRemaining === 1 ? daysRemaining + " day" : daysRemaining + " days"}}. Commenting will close on {{application.currentPeriod.endDate | date:'longDate'}}.
           </div>
-          <div class="status-msg" *ngIf="!commentPeriodService.isOpen(application.cpStatusCode)">
+          <div class="status-msg" *ngIf="!commentPeriodService.isOpen(application.cpStatus)">
             Commenting is closed for this application. Comments were accepted from {{application.currentPeriod.startDate | date:'longDate'}} to {{application.currentPeriod.endDate | date:'longDate'}}.
           </div>
-          <button class="submit-comment-btn btn btn-primary" (click)="addComment()" *ngIf="commentPeriodService.isOpen(application.cpStatusCode)">Submit a Comment</button>
+          <button class="submit-comment-btn btn btn-primary" (click)="addComment()" *ngIf="commentPeriodService.isOpen(application.cpStatus)">Submit a Comment</button>
         </section>
       </div>
 
@@ -109,9 +110,9 @@
           </div>
         </div>
         <div *ngIf="!application.decision">
-          <div *ngIf="applicationService.isAbandoned(application.appStatusCode)
-          || applicationService.isDecisionApproved(application.appStatusCode)
-          || applicationService.isDecisionNotApproved(application.appStatusCode); else notDecisionStatus">
+          <div *ngIf="applicationService.isAbandoned(application)
+          || applicationService.isDecisionApproved(application)
+          || applicationService.isDecisionNotApproved(application); else notDecisionStatus">
             No decision documents are available at this time. Please check back for updates to this information.
           </div>
           <ng-template #notDecisionStatus>
