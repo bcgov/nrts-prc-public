@@ -1,7 +1,3 @@
-<div class="popup-content" *ngIf="!app">
-  Loading application details...
-</div>
-
 <div class="popup-content" *ngIf="app">
   <div class="file-number">Crown Land File: {{app['clFile'] || '-'}}</div>
 
@@ -11,17 +7,18 @@
   <ul class="status-container">
     <li class="app-status"
       [ngClass]="{
-        'abandoned':        applicationService.isAbandoned(app.appStatusCode),
-        'under-review':     applicationService.isApplicationUnderReview(app.appStatusCode),
-        'review-complete':  applicationService.isApplicationReviewComplete(app.appStatusCode),
-        'approved':         applicationService.isDecisionApproved(app.appStatusCode),
-        'not-approved':     applicationService.isDecisionNotApproved(app.appStatusCode),
-        'unknown':          applicationService.isUnknown(app.appStatusCode)
-      }">{{app.appStatus}}
+        'amendment':       applicationService.isAmendment(app),
+        'abandoned':       applicationService.isAbandoned(app),
+        'under-review':    applicationService.isApplicationUnderReview(app),
+        'review-complete': applicationService.isApplicationReviewComplete(app),
+        'approved':        applicationService.isDecisionApproved(app),
+        'not-approved':    applicationService.isDecisionNotApproved(app),
+        'unknown':         applicationService.isUnknown(app)
+      }">{{applicationService.getStatusStringLong(app)}}
     </li>
     <li class="commenting-status"
-      [ngClass]="commentPeriodService.isOpen(app.cpStatusCode) ? 'commenting-open':'commenting-closed'">
-      {{commentPeriodService.getStatusString(app.cpStatusCode)}}
+      [ngClass]="commentPeriodService.isOpen(app.cpStatus) ? 'commenting-open':'commenting-closed'">
+      {{commentPeriodService.getStatusStringLong(app.cpStatus)}}
     </li>
   </ul>
 

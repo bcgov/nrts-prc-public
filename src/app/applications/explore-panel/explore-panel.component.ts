@@ -1,333 +1,316 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
+import { Component, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import * as _ from 'lodash';
 import * as moment from 'moment';
 
-import { Constants } from 'app/utils/constants';
-import { ApplicationService } from 'app/services/application.service';
+import { ApplicationService, IFiltersType } from 'app/services/application.service';
 import { CommentPeriodService } from 'app/services/commentperiod.service';
 import { PurposeInfoModalComponent } from 'app/applications/purpose-info-modal/purpose-info-modal.component';
 import { UrlService } from 'app/services/url.service';
 
+import { StatusCodes, PurposeCodes } from 'app/utils/constants/application';
+import { CommentCodes } from 'app/utils/constants/comment';
+import { ICodeGroup } from 'app/utils/constants/interfaces';
+import { Filter, MultiFilter, IMultiFilterFields, FilterUtils } from '../utils/filter';
+import { IUpdateEvent } from '../applications.component';
+
+/**
+ * Explore side panel.
+ *
+ * @export
+ * @class ExplorePanelComponent
+ * @implements {OnDestroy}
+ */
 @Component({
   selector: 'app-explore-panel',
   templateUrl: './explore-panel.component.html',
   styleUrls: ['./explore-panel.component.scss']
 })
-export class ExplorePanelComponent implements OnInit, OnDestroy {
-  @Output() updateFilters = new EventEmitter(); // to applications component
-  @Output() hideSidePanel = new EventEmitter(); // to applications component // used in template
-  @Output() resetView = new EventEmitter(); // to applications component
+export class ExplorePanelComponent implements OnDestroy {
+  @Output() update = new EventEmitter<IUpdateEvent>();
+
+  public filterHash: string;
 
   readonly minDate = moment('2018-03-23').toDate(); // first app created
   readonly maxDate = moment().toDate(); // today
 
-  private ngUnsubscribe: Subject<boolean> = new Subject<boolean>();
+  public ngUnsubscribe: Subject<boolean> = new Subject<boolean>();
 
-  // search keys for lists
-  public cpStatusKeys: string[] = [];
-  public appStatusKeys: string[] = [];
-  public purposeKeys: string[] = [];
-  public subpurposeKeys: string[] = [];
+  // comment period filters
+  public commentPeriodFilters = new MultiFilter<boolean>({
+    queryParamsKey: 'cpStatus',
+    filters: [
+      { queryParam: CommentCodes.OPEN.code, displayString: 'Commenting Open', value: false },
+      { queryParam: CommentCodes.NOT_OPEN.code, displayString: 'Commenting Closed', value: false }
+    ]
+  });
 
-  public cpStatusFilters: object = {}; // array-like object
-  public _cpStatusFilters: object = {}; // temporary filters for Cancel feature
+  // application status filters
+  public statusFilters = new MultiFilter<boolean>({
+    queryParamsKey: 'appStatuses',
+    filters: [
+      {
+        queryParam: StatusCodes.APPLICATION_UNDER_REVIEW.param,
+        displayString: StatusCodes.APPLICATION_UNDER_REVIEW.text.short,
+        value: false
+      },
+      {
+        queryParam: StatusCodes.APPLICATION_REVIEW_COMPLETE.param,
+        displayString: StatusCodes.APPLICATION_REVIEW_COMPLETE.text.short,
+        value: false
+      },
+      {
+        queryParam: StatusCodes.DECISION_APPROVED.param,
+        displayString: StatusCodes.DECISION_APPROVED.text.short,
+        value: false
+      },
+      {
+        queryParam: StatusCodes.DECISION_NOT_APPROVED.param,
+        displayString: StatusCodes.DECISION_NOT_APPROVED.text.short,
+        value: false
+      },
+      { queryParam: StatusCodes.ABANDONED.param, displayString: StatusCodes.ABANDONED.text.short, value: false }
+    ]
+  });
 
-  public appStatusFilters: object = {}; // array-like object
-  public _appStatusFilters: object = {}; // temporary filters for Cancel feature
+  // application purpose filters
+  public purposeFilters = new MultiFilter<boolean>({
+    queryParamsKey: 'purposes',
+    filters: new PurposeCodes().getCodeGroups().map((codeGroup: ICodeGroup) => {
+      return { queryParam: codeGroup.param, displayString: codeGroup.text.long, value: false };
+    })
+  });
 
-  public purposeFilters: object = {}; // array-like object
-  public _purposeFilters: object = {}; // temporary filters for Cancel feature
+  // application publish from date filter
+  public publishFromFilter = new Filter<Date>({ filter: { queryParam: 'publishFrom', value: null } });
 
-  public subpurposeFilters: object = {}; // array-like object
-  public _subpurposeFilters: object = {}; // temporary filters for Cancel feature
-
-  public publishFromFilter: Date = null;
-  public _publishFromFilter: Date = null; // temporary filters for Cancel feature
-
-  public publishToFilter: Date = null;
-  public _publishToFilter: Date = null; // temporary filters for Cancel feature
+  // application publish to date filter
+  public publishToFilter = new Filter<Date>({ filter: { queryParam: 'publishTo', value: null } });
 
   constructor(
-    private modalService: NgbModal,
-    private applicationService: ApplicationService,
-    public commentPeriodService: CommentPeriodService, // also used in template
-    private urlService: UrlService
+    public modalService: NgbModal,
+    public applicationService: ApplicationService, // used in template
+    public commentPeriodService: CommentPeriodService, // used in template
+    public urlService: UrlService
   ) {
-    // declare comment period status keys
-    this.cpStatusKeys.push(this.commentPeriodService.OPEN);
-    this.cpStatusKeys.push(this.commentPeriodService.NOT_OPEN);
-
-    // declare application status keys
-    this.appStatusKeys.push(this.applicationService.APPLICATION_UNDER_REVIEW);
-    this.appStatusKeys.push(this.applicationService.APPLICATION_REVIEW_COMPLETE);
-    this.appStatusKeys.push(this.applicationService.DECISION_APPROVED);
-    this.appStatusKeys.push(this.applicationService.DECISION_NOT_APPROVED);
-    this.appStatusKeys.push(this.applicationService.ABANDONED);
-
-    // declare purpose keys
-    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
-      this.purposeKeys.push(purpose.toUpperCase());
-    });
-
-    // declare subpurpose keys
-    Object.getOwnPropertyNames(Constants.subpurposes).forEach(purpose => {
-      Constants.subpurposes[purpose].forEach((subpurpose: string) => {
-        this.subpurposeKeys.push(subpurpose.toUpperCase());
-      });
-    });
-
-    // initialize temporary filters
-    this.cpStatusKeys.forEach(key => {
-      this._cpStatusFilters[key] = false;
-    });
-    this.appStatusKeys.forEach(key => {
-      this._appStatusFilters[key] = false;
-    });
-    this.purposeKeys.forEach(key => {
-      this._purposeFilters[key] = false;
-    });
-    this.subpurposeKeys.forEach(key => {
-      this._subpurposeFilters[key] = false;
-    });
-
     // watch for URL param changes
     // NB: this must be in constructor to get initial parameters
     this.urlService.onNavEnd$.pipe(takeUntil(this.ngUnsubscribe)).subscribe(() => {
-      // get initial or updated parameters
-      // TODO: could also get params from event.url
-      const hasChanges = this.getParameters();
-
-      // notify applications component that we have new filters
-      if (hasChanges) {
-        this.updateFilters.emit(this.getFilters());
+      this.loadQueryParameters();
+      if (this.areFiltersSet()) {
+        this.emitUpdate({ search: false, resetMap: false, hidePanel: false });
       }
     });
   }
 
-  private getParameters(): boolean {
-    const cpStatuses = (this.urlService.query('cpStatuses') || '').split('|');
-    this.cpStatusKeys.forEach(key => {
-      this.cpStatusFilters[key] = cpStatuses.includes(key);
+  /**
+   * Computes a hash based on the current filters, updates the local filterHash value if the newly computed hash is
+   * different from the current hash, and returns true if the hash was updated, or false otherwise.
+   *
+   * @returns {boolean}
+   * @memberof ExplorePanelComponent
+   */
+  public checkAndSetFiltersHash(): boolean {
+    const newFilterHash = FilterUtils.hashFilters(
+      this.commentPeriodFilters,
+      this.statusFilters,
+      this.purposeFilters,
+      this.publishFromFilter,
+      this.publishToFilter
+    );
+
+    if (this.filterHash === newFilterHash) {
+      return false;
+    }
+
+    this.filterHash = newFilterHash;
+    return true;
+  }
+
+  /**
+   * Toggles the filters boolean value.
+   *
+   * @param {IMultiFilterFields} filter
+   * @memberof ExplorePanelComponent
+   */
+  public toggleFilter(filter: IMultiFilterFields<boolean>) {
+    filter.value = !filter.value;
+  }
+
+  /**
+   * Emit the current selected filters to the parent, if the filters have changed since the last time emit was called.
+   *
+   * @param {IUpdateEvent} updateEventOptions
+   * @memberof ExplorePanelComponent
+   */
+  public emitUpdate(updateEventOptions: IUpdateEvent) {
+    if (this.checkAndSetFiltersHash()) {
+      this.update.emit({ ...updateEventOptions, filters: this.getFilters() });
+    }
+  }
+
+  /**
+   * Gets any query parameters from the URL and updates the local filters accordingly.
+   *
+   * @memberof ExplorePanelComponent
+   */
+  public loadQueryParameters(): void {
+    const cpStatusQueryParams = (this.urlService.getQueryParam(this.commentPeriodFilters.queryParamsKey) || '').split(
+      '|'
+    );
+    this.commentPeriodFilters.filters.forEach(filter => {
+      filter.value = cpStatusQueryParams.includes(filter.queryParam);
     });
 
-    const appStatuses = (this.urlService.query('appStatuses') || '').split('|');
-    this.appStatusKeys.forEach(key => {
-      this.appStatusFilters[key] = appStatuses.includes(key);
+    const appStatusQueryParams = (this.urlService.getQueryParam(this.statusFilters.queryParamsKey) || '').split('|');
+    this.statusFilters.filters.forEach(filter => {
+      filter.value = appStatusQueryParams.includes(filter.queryParam);
     });
 
-    const purposes = (this.urlService.query('purposes') || '').split('|');
-    this.purposeKeys.forEach(key => {
-      this.purposeFilters[key] = purposes.includes(key);
+    const appPurposeQueryParams = (this.urlService.getQueryParam(this.purposeFilters.queryParamsKey) || '').split('|');
+    this.purposeFilters.filters.forEach(filter => {
+      filter.value = appPurposeQueryParams.includes(filter.queryParam);
     });
 
-    const subpurposes = (this.urlService.query('subpurposes') || '').split('|');
-    this.subpurposeKeys.forEach(key => {
-      this.subpurposeFilters[key] = subpurposes.includes(key);
-    });
-
-    this.publishFromFilter = this.urlService.query('publishFrom')
-      ? moment(this.urlService.query('publishFrom')).toDate()
+    this.publishFromFilter.filter.value = this.urlService.getQueryParam(this.publishFromFilter.filter.queryParam)
+      ? moment(this.urlService.getQueryParam(this.publishFromFilter.filter.queryParam)).toDate()
       : null;
-    this.publishToFilter = this.urlService.query('publishTo')
-      ? moment(this.urlService.query('publishTo')).toDate()
+
+    this.publishToFilter.filter.value = this.urlService.getQueryParam(this.publishToFilter.filter.queryParam)
+      ? moment(this.urlService.getQueryParam(this.publishToFilter.filter.queryParam)).toDate()
       : null;
-
-    // const hasFilters = _.values(this.cpStatusFilters).find(b => b)
-    //   || _.values(this.appStatusFilters).find(b => b)
-    //   || _.values(this.purposeFilters).find(b => b)
-    //   || _.values(this.subpurposeFilters).find(b => b)
-    //   || !!this.publishFromFilter
-    //   || !!this.publishToFilter;
-
-    const hasChanges =
-      !_.isEqual(this._cpStatusFilters, this.cpStatusFilters) ||
-      !_.isEqual(this._appStatusFilters, this.appStatusFilters) ||
-      !_.isEqual(this._purposeFilters, this.purposeFilters) ||
-      !_.isEqual(this._subpurposeFilters, this.subpurposeFilters) ||
-      !_.isEqual(this._publishFromFilter, this.publishFromFilter) ||
-      !_.isEqual(this._publishToFilter, this.publishToFilter);
-
-    // copy all data from actual to temporary properties
-    this._cpStatusFilters = { ...this.cpStatusFilters };
-    this._appStatusFilters = { ...this.appStatusFilters };
-    this._purposeFilters = { ...this.purposeFilters };
-    this._subpurposeFilters = { ...this.subpurposeFilters };
-    this._publishFromFilter = this.publishFromFilter;
-    this._publishToFilter = this.publishToFilter;
-
-    return hasChanges;
   }
 
-  public ngOnInit() {}
-
-  public ngOnDestroy() {
-    this.ngUnsubscribe.next();
-    this.ngUnsubscribe.complete();
-  }
-
-  public getFilters(): object {
-    // convert array-like objects to arrays
-    const cpStatuses: string[] = [];
-    Object.keys(this.cpStatusFilters).forEach(key => {
-      if (this.cpStatusFilters[key]) {
-        cpStatuses.push(key);
-      }
-    });
-
-    const appStatuses: string[] = [];
-    Object.keys(this.appStatusFilters).forEach(key => {
-      if (this.appStatusFilters[key]) {
-        appStatuses.push(key);
-      }
-    });
-
-    const purposes: string[] = [];
-    Object.keys(this.purposeFilters).forEach(key => {
-      if (this.purposeFilters[key]) {
-        purposes.push(key);
-      }
-    });
-
-    const subpurposes: string[] = [];
-    Object.keys(this.subpurposeFilters).forEach(key => {
-      if (this.subpurposeFilters[key]) {
-        subpurposes.push(key);
-      }
-    });
-
-    return {
-      cpStatuses: cpStatuses,
-      appStatuses: appStatuses,
-      purposes: purposes,
-      subpurposes: subpurposes,
-      publishFrom: this.publishFromFilter
-        ? moment(this.publishFromFilter)
+  /**
+   * Parses the local filters into the type expected by the parent.
+   *
+   * @returns {IFiltersType}
+   * @memberof ExplorePanelComponent
+   */
+  public getFilters(): IFiltersType {
+    const filters = {
+      cpStatuses: this.commentPeriodFilters.getQueryParamsArray(),
+      appStatuses: this.statusFilters.getQueryParamsArray(),
+      purposes: this.purposeFilters.getQueryParamsArray(),
+      publishFrom: this.publishFromFilter.filter.value
+        ? moment(this.publishFromFilter.filter.value)
             .startOf('day')
             .toDate()
         : null,
-      publishTo: this.publishToFilter
-        ? moment(this.publishToFilter)
+      publishTo: this.publishToFilter.filter.value
+        ? moment(this.publishToFilter.filter.value)
             .endOf('day')
             .toDate()
         : null
     };
+
+    return filters;
   }
 
-  public applyAllFilters(doNotify: boolean = true) {
-    // notify applications component to reset map view so user has context of what results are returned
-    this.resetView.emit();
-
-    // apply all temporary filters
-    this.cpStatusFilters = { ...this._cpStatusFilters };
-    this.appStatusFilters = { ...this._appStatusFilters };
-    this.purposeFilters = { ...this._purposeFilters };
-    this.subpurposeFilters = { ...this._subpurposeFilters };
-    this.publishFromFilter = this._publishFromFilter;
-    this.publishToFilter = this._publishToFilter;
-
-    // save parameters
-    this._saveParameters();
-
-    // notify applications component that we have new filters
-    if (doNotify) {
-      this.updateFilters.emit(this.getFilters());
-    }
+  /**
+   * Saves the currently selected filters to the url and emits them to the parent.
+   *
+   * @memberof ExplorePanelComponent
+   */
+  public applyAllFilters() {
+    this.saveQueryParameters();
+    this.emitUpdate({ search: true, resetMap: true, hidePanel: false });
   }
 
-  private _saveParameters() {
-    let cpStatuses: string = null;
-    this.cpStatusKeys.forEach(key => {
-      if (this.cpStatusFilters[key]) {
-        if (!cpStatuses) {
-          cpStatuses = key;
-        } else {
-          cpStatuses += '|' + key;
-        }
-      }
-    });
-
-    let appStatuses: string = null;
-    this.appStatusKeys.forEach(key => {
-      if (this.appStatusFilters[key]) {
-        if (!appStatuses) {
-          appStatuses = key;
-        } else {
-          appStatuses += '|' + key;
-        }
-      }
-    });
-
-    let purposes: string = null;
-    this.purposeKeys.forEach(key => {
-      if (this.purposeFilters[key]) {
-        if (!purposes) {
-          purposes = key;
-        } else {
-          purposes += '|' + key;
-        }
-      }
-    });
-
-    let subpurposes: string = null;
-    this.subpurposeKeys.forEach(key => {
-      if (this.subpurposeFilters[key]) {
-        if (!subpurposes) {
-          subpurposes = key;
-        } else {
-          subpurposes += '|' + key;
-        }
-      }
-    });
-
-    this.urlService.save('cpStatuses', cpStatuses);
-    this.urlService.save('appStatuses', appStatuses);
-    this.urlService.save('purposes', purposes);
-    this.urlService.save('subpurposes', subpurposes);
-    this.urlService.save('publishFrom', this.publishFromFilter && moment(this.publishFromFilter).format('YYYY-MM-DD'));
-    this.urlService.save('publishTo', this.publishToFilter && moment(this.publishToFilter).format('YYYY-MM-DD'));
+  /**
+   * Saves the currently selected filters to the url and emits them to the parent.
+   *
+   * @memberof ExplorePanelComponent
+   */
+  public applyAllFiltersMobile() {
+    this.saveQueryParameters();
+    this.emitUpdate({ search: true, resetMap: true, hidePanel: true });
   }
 
-  // clear all temporary filters
-  public clearAllFilters(doNotify: boolean = true) {
-    if (this.filterCount() > 0) {
-      this.cpStatusKeys.forEach(key => {
-        this._cpStatusFilters[key] = false;
-      });
-      this.appStatusKeys.forEach(key => {
-        this._appStatusFilters[key] = false;
-      });
-      this.purposeKeys.forEach(key => {
-        this._purposeFilters[key] = false;
-      });
-      this.subpurposeKeys.forEach(key => {
-        this._subpurposeFilters[key] = false;
-      });
-      this._publishFromFilter = null;
-      this._publishToFilter = null;
+  /**
+   * Save the currently selected filters to the url.
+   *
+   * @memberof ExplorePanelComponent
+   */
+  public saveQueryParameters() {
+    this.urlService.setQueryParam(
+      this.commentPeriodFilters.queryParamsKey,
+      this.commentPeriodFilters.getQueryParamsString()
+    );
 
-      this.applyAllFilters(doNotify);
-    }
+    this.urlService.setQueryParam(this.statusFilters.queryParamsKey, this.statusFilters.getQueryParamsString());
+
+    this.urlService.setQueryParam(this.purposeFilters.queryParamsKey, this.purposeFilters.getQueryParamsString());
+
+    this.urlService.setQueryParam(
+      this.publishFromFilter.filter.queryParam,
+      this.publishFromFilter.filter.value && moment(this.publishFromFilter.filter.value).format('YYYY-MM-DD')
+    );
+
+    this.urlService.setQueryParam(
+      this.publishToFilter.filter.queryParam,
+      this.publishToFilter.filter.value && moment(this.publishToFilter.filter.value).format('YYYY-MM-DD')
+    );
   }
 
-  // return count of filters
-  public filterCount(): number {
-    const cpStatusCount = this.cpStatusKeys.filter(key => this.cpStatusFilters[key]).length;
-    const appStatusCount = this.appStatusKeys.filter(key => this.appStatusFilters[key]).length;
-    const purposeCount = this.purposeKeys.filter(key => this.purposeFilters[key]).length;
-    const subpurposeCount = this.subpurposeKeys.filter(key => this.subpurposeFilters[key]).length;
-    const publishCount = this.publishFromFilter || this.publishToFilter ? 1 : 0;
-
-    return cpStatusCount + appStatusCount + purposeCount + subpurposeCount + publishCount;
+  /**
+   * Resets all filters to their default (null, empty) values.
+   * Removes the query parameters from the url.
+   *
+   * @memberof ExplorePanelComponent
+   */
+  public clear() {
+    this.clearAllFilters();
+    this.saveQueryParameters();
+    this.emitUpdate({ search: false, resetMap: true, hidePanel: false });
   }
 
+  /**
+   * Resets all filters to their default (null, empty) values.
+   *
+   * @memberof ExplorePanelComponent
+   */
+  public clearAllFilters() {
+    this.commentPeriodFilters.reset();
+    this.statusFilters.reset();
+    this.purposeFilters.reset();
+    this.publishFromFilter.reset();
+    this.publishToFilter.reset();
+  }
+
+  /**
+   * Returns true if at least 1 filter is selected/populated, false otherwise.
+   *
+   * @returns {boolean}
+   * @memberof ExplorePanelComponent
+   */
+  public areFiltersSet(): boolean {
+    return (
+      this.commentPeriodFilters.isFilterSet() ||
+      this.statusFilters.isFilterSet() ||
+      this.purposeFilters.isFilterSet() ||
+      this.publishFromFilter.isFilterSet() ||
+      this.publishToFilter.isFilterSet()
+    );
+  }
+
+  /**
+   * Show purpose filter details modal.
+   *
+   * @memberof ExplorePanelComponent
+   */
   public showPurposeInfoModal() {
-    // open modal
-    this.modalService.open(PurposeInfoModalComponent, {
-      size: 'lg',
-      windowClass: 'modal-fixed'
-    });
+    this.modalService.open(PurposeInfoModalComponent, { size: 'lg', windowClass: 'modal-fixed' });
+  }
+
+  /**
+   * On component destroy.
+   *
+   * @memberof ExplorePanelComponent
+   */
+  public ngOnDestroy() {
+    this.ngUnsubscribe.next();
+    this.ngUnsubscribe.complete();
   }
 }

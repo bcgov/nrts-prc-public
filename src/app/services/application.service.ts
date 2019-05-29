@@ -1,39 +1,46 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, combineLatest, merge } from 'rxjs';
+import { Observable, of, combineLatest } from 'rxjs';
 import { map, mergeMap, catchError } from 'rxjs/operators';
 import * as _ from 'lodash';
 import * as moment from 'moment';
 
-import { IFiltersType } from 'app/applications/applications.component';
 import { Application } from 'app/models/application';
-import { ApiService } from './api';
+import { ApiService, IQueryParamSet, QueryParamModifier } from './api';
 import { DocumentService } from './document.service';
 import { CommentPeriodService } from './commentperiod.service';
 import { DecisionService } from './decision.service';
 import { FeatureService } from './feature.service';
 
+import { StatusCodes, ReasonCodes } from 'app/utils/constants/application';
+import { ConstantUtils, CodeType } from 'app/utils/constants/constantUtils';
+import { CommentCodes } from 'app/utils/constants/comment';
+
+/**
+ * All supported filters.
+ *
+ * @export
+ * @interface IFiltersType
+ */
+export interface IFiltersType {
+  // Find panel
+  clidDtid?: string;
+
+  // Explore panel
+  publishFrom?: Date;
+  publishTo?: Date;
+  cpStatuses?: string[];
+  purposes?: string[];
+  appStatuses?: string[];
+}
+
+/**
+ * Provides supporting methods for working with applications.
+ *
+ * @export
+ * @class ApplicationService
+ */
 @Injectable()
 export class ApplicationService {
-  //#region Constants
-  // statuses / query param options
-  readonly ABANDONED = 'AB';
-  readonly APPLICATION_UNDER_REVIEW = 'AUR';
-  readonly APPLICATION_REVIEW_COMPLETE = 'ARC';
-  readonly DECISION_APPROVED = 'DA';
-  readonly DECISION_NOT_APPROVED = 'DNA';
-  readonly UNKNOWN = 'UN'; // special status when no data
-
-  // regions / query param options
-  readonly CARIBOO = 'CA';
-  readonly KOOTENAY = 'KO';
-  readonly LOWER_MAINLAND = 'LM';
-  readonly OMENICA = 'OM';
-  readonly PEACE = 'PE';
-  readonly SKEENA = 'SK';
-  readonly SOUTHERN_INTERIOR = 'SI';
-  readonly VANCOUVER_ISLAND = 'VI';
-  //#endregion
-
   private application: Application = null; // for caching
 
   constructor(
@@ -44,219 +51,219 @@ export class ApplicationService {
     private featureService: FeatureService
   ) {}
 
-  // get count of matching applications
-  getCount(filters: IFiltersType, coordinates: string): Observable<number> {
-    // assign publish date filters
-    const publishSince = filters.publishFrom ? filters.publishFrom.toISOString() : null;
-    const publishUntil = filters.publishTo ? filters.publishTo.toISOString() : null;
+  /**
+   * Given filters and coordinates, build an array of query parameter sets.
+   *
+   * Each query parameter set in the array will return a distinct set of results.
+   *
+   * The combined results from all query parameter sets is needed to fully satisfy the given search filters and
+   * coordinates.
+   *
+   * @param {IFiltersType} filters
+   * @param {string} coordinates
+   * @returns {IQueryParamSet[]} An array of distinct query parameter sets.
+   * @memberof ApplicationService
+   */
+  buildQueryParamSets(filters: IFiltersType, coordinates: string): IQueryParamSet[] {
+    let queryParamSets: IQueryParamSet[] = [];
 
-    // convert application statuses from codes to strings
-    const appStatuses = _.flatMap(filters.appStatuses, statusCode => this.getTantalisStatus(statusCode));
+    // None of these filters require manipulation or unique considerations
+    const basicQueryParams: IQueryParamSet = {
+      clidDtid: { value: filters && filters.clidDtid },
+      purposes: {
+        value:
+          filters && _.flatMap(filters.purposes, purposeCode => ConstantUtils.getCode(CodeType.PURPOSE, purposeCode))
+      },
+      publishSince: { value: filters && filters.publishFrom ? filters.publishFrom.toISOString() : null },
+      publishUntil: { value: filters && filters.publishTo ? filters.publishTo.toISOString() : null },
+      coordinates: { value: coordinates }
+    };
 
-    // handle comment period filtering
-    const cpOpen = filters.cpStatuses.includes(this.commentPeriodService.OPEN);
-    const cpNotOpen = filters.cpStatuses.includes(this.commentPeriodService.NOT_OPEN);
+    // Certain Statuses require unique considerations, which are accounted for here
 
-    // if both cpOpen and cpNotOpen or neither cpOpen nor cpNotOpen then use no cpStart or cpEnd filters
-    if ((cpOpen && cpNotOpen) || (!cpOpen && !cpNotOpen)) {
-      return this.api
-        .getCountApplications({
-          appStatuses: appStatuses,
-          applicant: filters.applicant,
-          clidDtid: filters.clidDtid,
-          purposes: filters.purposes,
-          subpurposes: filters.subpurposes,
-          publishSince: publishSince,
-          publishUntil: publishUntil,
-          coordinates: coordinates
-        })
-        .pipe(catchError(this.api.handleError));
+    const appStatusCodeGroups =
+      filters && _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getCodeGroup(CodeType.STATUS, statusCode));
+
+    appStatusCodeGroups.forEach(statusCodeGroup => {
+      if (statusCodeGroup === StatusCodes.ABANDONED) {
+        // Fetch applications with Abandoned Status that don't have a Reason indicating an amendment.
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: StatusCodes.ABANDONED.mappedCodes },
+          appReasons: {
+            value: [ReasonCodes.AMENDMENT_APPROVED.code, ReasonCodes.AMENDMENT_NOT_APPROVED.code],
+            modifier: QueryParamModifier.Not_Equal
+          }
+        });
+      } else if (statusCodeGroup === StatusCodes.DECISION_APPROVED) {
+        // Fetch applications with Approved status
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: statusCodeGroup.mappedCodes }
+        });
+
+        // Also fetch applications with an Abandoned status that also have a Reason indicating an approved amendment.
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: StatusCodes.ABANDONED.mappedCodes },
+          appReasons: {
+            value: [ReasonCodes.AMENDMENT_APPROVED.code],
+            modifier: QueryParamModifier.Equal
+          }
+        });
+      } else if (statusCodeGroup === StatusCodes.DECISION_NOT_APPROVED) {
+        // Fetch applications with Not Approved status
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: statusCodeGroup.mappedCodes }
+        });
+
+        // Also fetch applications with an Abandoned status that also have a Reason indicating a not approved amendment.
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: StatusCodes.ABANDONED.mappedCodes },
+          appReasons: {
+            value: [ReasonCodes.AMENDMENT_NOT_APPROVED.code],
+            modifier: QueryParamModifier.Equal
+          }
+        });
+      } else {
+        // This status requires no special treatment, fetch as normal
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: statusCodeGroup.mappedCodes }
+        });
+      }
+    });
+
+    // if no status filters selected, still add the basic query filters
+    if (queryParamSets.length === 0) {
+      queryParamSets = [{ ...basicQueryParams }];
     }
 
+    // handle comment period filtering
+
+    const cpOpen = filters && filters.cpStatuses.includes(CommentCodes.OPEN.code);
+    const cpNotOpen = filters && filters.cpStatuses.includes(CommentCodes.NOT_OPEN.code);
+
     const now = moment();
-    // watch out -- Moment mutates objects!
     const yesterday = now.clone().subtract(1, 'days');
     const tomorrow = now.clone().add(1, 'days');
 
     // if cpOpen then filter by cpStart <= today && cpEnd >= today
-    if (cpOpen) {
-      return this.api
-        .getCountApplications({
-          cpStartUntil: now.endOf('day').toISOString(),
-          cpEndSince: now.startOf('day').toISOString(),
-          appStatuses: appStatuses,
-          applicant: filters.applicant,
-          clidDtid: filters.clidDtid,
-          purposes: filters.purposes,
-          subpurposes: filters.subpurposes,
-          publishSince: publishSince,
-          publishUntil: publishUntil,
-          coordinates: coordinates
-        })
-        .pipe(catchError(this.api.handleError));
+    if (cpOpen && !cpNotOpen) {
+      queryParamSets = queryParamSets.map(queryParamSet => {
+        return {
+          ...queryParamSet,
+          cpStartUntil: { value: now.endOf('day').toISOString() },
+          cpEndSince: { value: now.startOf('day').toISOString() }
+        };
+      });
     }
 
-    // else cpNotOpen (ie, closed or future) then filter by cpEnd <= yesterday || cpStart >= tomorrow
-    // NB: this doesn't return apps without comment periods
-    const closed = this.api.getCountApplications({
-      cpEndUntil: yesterday.endOf('day').toISOString(),
-      appStatuses: appStatuses,
-      applicant: filters.applicant,
-      clidDtid: filters.clidDtid,
-      purposes: filters.purposes,
-      subpurposes: filters.subpurposes,
-      publishSince: publishSince,
-      publishUntil: publishUntil,
-      coordinates: coordinates
-    });
-    const future = this.api.getCountApplications({
-      cpStartSince: tomorrow.startOf('day').toISOString(),
-      appStatuses: appStatuses,
-      applicant: filters.applicant,
-      clidDtid: filters.clidDtid,
-      purposes: filters.purposes,
-      subpurposes: filters.subpurposes,
-      publishSince: publishSince,
-      publishUntil: publishUntil,
-      coordinates: coordinates
-    });
+    // else if cpNotOpen then filter by cpEnd <= yesterday || cpStart >= tomorrow
+    if (!cpOpen && cpNotOpen) {
+      // we need to duplicate our existing query param sets
+      let queryParamSetsCopy = _.cloneDeep(queryParamSets);
 
-    return combineLatest(closed, future, (v1: number, v2: number) => v1 + v2).pipe(catchError(this.api.handleError));
+      // add this comment period date fitler to the original set
+      queryParamSets = queryParamSets.map(queryParamSet => {
+        return {
+          ...queryParamSet,
+          cpEndUntil: { value: yesterday.endOf('day').toISOString() }
+        };
+      });
+
+      // add this comment period date fitler to the duplicated set
+      queryParamSetsCopy = queryParamSetsCopy.map(queryParamSet => {
+        return {
+          ...queryParamSet,
+          cpStartSince: { value: tomorrow.startOf('day').toISOString() }
+        };
+      });
+
+      // combine sets
+      queryParamSets = queryParamSets.concat(queryParamSetsCopy);
+    }
+
+    return queryParamSets;
   }
 
-  // get matching applications without their meta (documents, comment period, decisions, etc)
+  /**
+   * Fetches the count of applications that match the given query parameter filters.
+   *
+   * @param {IFiltersType} filters
+   * @param {string} coordinates
+   * @returns {Observable<number>}
+   * @memberof ApplicationService
+   */
+  getCount(filters: IFiltersType, coordinates: string): Observable<number> {
+    const queryParamSets = this.buildQueryParamSets(filters, coordinates);
+
+    const observables: Array<Observable<number>> = queryParamSets.map(queryParamSet =>
+      this.api.getCountApplications(queryParamSet).pipe(catchError(this.api.handleError))
+    );
+
+    return combineLatest(observables, (...args: number[]) => args.reduce((sum, arg) => (sum += arg))).pipe(
+      catchError(this.api.handleError)
+    );
+  }
+
+  /**
+   * Fetch all applications that match the given query parameter filters.
+   *
+   * Note: Doesn't include any secondary application data (documents, comment period, decisions, etc)
+   *
+   * @param {number} [pageNum=0]
+   * @param {number} [pageSize=1000]
+   * @param {IFiltersType} filters
+   * @param {string} coordinates
+   * @returns {Observable<Application[]>}
+   * @memberof ApplicationService
+   */
   getAll(
     pageNum: number = 0,
     pageSize: number = 1000,
     filters: IFiltersType,
     coordinates: string
   ): Observable<Application[]> {
-    // assign publish date filters
-    const publishSince = filters.publishFrom ? filters.publishFrom.toISOString() : null;
-    const publishUntil = filters.publishTo ? filters.publishTo.toISOString() : null;
+    const queryParamSets = this.buildQueryParamSets(filters, coordinates);
 
-    // convert application statuses from codes to strings
-    const appStatuses = _.flatMap(filters.appStatuses, statusCode => this.getTantalisStatus(statusCode));
-
-    // handle comment period filtering
-    const cpOpen = filters.cpStatuses.includes(this.commentPeriodService.OPEN);
-    const cpNotOpen = filters.cpStatuses.includes(this.commentPeriodService.NOT_OPEN);
-
-    // if both cpOpen and cpNotOpen or neither cpOpen nor cpNotOpen then use no cpStart or cpEnd filters
-    if ((cpOpen && cpNotOpen) || (!cpOpen && !cpNotOpen)) {
-      return this.api
-        .getApplications({
-          pageNum: pageNum,
-          pageSize: pageSize,
-          appStatuses: appStatuses,
-          applicant: filters.applicant,
-          clidDtid: filters.clidDtid,
-          purposes: filters.purposes,
-          subpurposes: filters.subpurposes,
-          publishSince: publishSince,
-          publishUntil: publishUntil,
-          coordinates: coordinates
-        })
-        .pipe(
-          map((res: Application[]) => {
-            if (!res || res.length === 0) {
-              return [] as Application[];
-            }
-
-            const applications: Application[] = [];
-            res.forEach(application => {
-              applications.push(new Application(application));
-            });
-            return applications;
-          }),
-          catchError(this.api.handleError)
-        );
-    }
-
-    const now = moment();
-    // watch out -- Moment mutates objects!
-    const yesterday = now.clone().subtract(1, 'days');
-    const tomorrow = now.clone().add(1, 'days');
-
-    // if cpOpen then filter by cpStart <= today && cpEnd >= today
-    if (cpOpen) {
-      return this.api
-        .getApplications({
-          pageNum: pageNum,
-          pageSize: pageSize,
-          cpStartUntil: now.endOf('day').toISOString(),
-          cpEndSince: now.startOf('day').toISOString(),
-          appStatuses: appStatuses,
-          applicant: filters.applicant,
-          clidDtid: filters.clidDtid,
-          purposes: filters.purposes,
-          subpurposes: filters.subpurposes,
-          publishSince: publishSince,
-          publishUntil: publishUntil,
-          coordinates: coordinates
-        })
-        .pipe(
-          map((res: Application[]) => {
-            if (!res || res.length === 0) {
-              return [] as Application[];
-            }
-
-            const applications: Application[] = [];
-            res.forEach(application => {
-              applications.push(new Application(application));
-            });
-            return applications;
-          }),
-          catchError(this.api.handleError)
-        );
-    }
-
-    // else cpNotOpen (ie, closed or future) then filter by cpEnd <= yesterday || cpStart >= tomorrow
-    // NB: this doesn't return apps without comment periods
-    const closed = this.api.getApplications({
-      pageNum: pageNum,
-      pageSize: pageSize,
-      cpEndUntil: yesterday.endOf('day').toISOString(),
-      appStatuses: appStatuses,
-      applicant: filters.applicant,
-      clidDtid: filters.clidDtid,
-      purposes: filters.purposes,
-      subpurposes: filters.subpurposes,
-      publishSince: publishSince,
-      publishUntil: publishUntil,
-      coordinates: coordinates
-    });
-    const future = this.api.getApplications({
-      pageNum: pageNum,
-      pageSize: pageSize,
-      cpStartSince: tomorrow.startOf('day').toISOString(),
-      appStatuses: appStatuses,
-      applicant: filters.applicant,
-      clidDtid: filters.clidDtid,
-      purposes: filters.purposes,
-      subpurposes: filters.subpurposes,
-      publishSince: publishSince,
-      publishUntil: publishUntil,
-      coordinates: coordinates
+    const observables: Array<Observable<Application[]>> = queryParamSets.map(queryParamSet => {
+      const queryParamSetWithPagination = {
+        ...queryParamSet,
+        pageNum: { value: pageNum },
+        pageSize: { value: pageSize }
+      };
+      return this.api.getApplications(queryParamSetWithPagination);
     });
 
-    return merge(closed, future).pipe(
+    return combineLatest(...observables).pipe(
       map((res: Application[]) => {
-        if (!res || res.length === 0) {
+        const resApps = _.flatten(res);
+        if (!resApps || resApps.length === 0) {
           return [] as Application[];
         }
 
         const applications: Application[] = [];
-        res.forEach(application => {
+        resApps.forEach(application => {
           applications.push(new Application(application));
         });
+
         return applications;
       }),
       catchError(this.api.handleError)
     );
   }
 
-  // get a specific application by its id
+  /**
+   * Fetch a single application by its id.
+   *
+   * @param {string} appId
+   * @param {boolean} [forceReload=false]
+   * @returns {Observable<Application>}
+   * @memberof ApplicationService
+   */
   getById(appId: string, forceReload: boolean = false): Observable<Application> {
     if (this.application && this.application._id === appId && !forceReload) {
       return of(this.application);
@@ -279,19 +286,14 @@ export class ApplicationService {
 
         const promises: Array<Promise<any>> = [];
 
-        // derive region code
-        application.region = this.getRegionCode(application.businessUnit);
-
-        // application status code
-        application.appStatusCode = this.getStatusCode(application.status);
-
-        // user-friendly application status
-        application.appStatus = this.getLongStatusString(application.appStatusCode);
-
         // derive retire date
         if (
           application.statusHistoryEffectiveDate &&
-          [this.DECISION_APPROVED, this.DECISION_NOT_APPROVED, this.ABANDONED].includes(application.appStatusCode)
+          [
+            StatusCodes.DECISION_APPROVED.code,
+            StatusCodes.DECISION_NOT_APPROVED.code,
+            StatusCodes.ABANDONED.code
+          ].includes(ConstantUtils.getCode(CodeType.STATUS, application.status))
         ) {
           application['retireDate'] = moment(application.statusHistoryEffectiveDate)
             .endOf('day')
@@ -326,11 +328,11 @@ export class ApplicationService {
               application.currentPeriod = this.commentPeriodService.getCurrent(periods); // may be null
 
               // comment period status code
-              application.cpStatusCode = this.commentPeriodService.getStatusCode(application.currentPeriod);
+              application.cpStatus = this.commentPeriodService.getCode(application.currentPeriod);
 
               // derive days remaining for display
               // use moment to handle Daylight Saving Time changes
-              if (this.commentPeriodService.isOpen(application.cpStatusCode)) {
+              if (this.commentPeriodService.isOpen(application.cpStatus)) {
                 const now = new Date();
                 const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 application.currentPeriod['daysRemaining'] =
@@ -365,182 +367,123 @@ export class ApplicationService {
   }
 
   /**
-   * Map Tantalis Status to status code.
+   * Returns true if the application has an abandoned status AND an amendment reason.
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an abandoned status AND an amendment reason, false otherwise.
+   * @memberof ApplicationService
    */
-  getStatusCode(statusString: string): string {
-    if (statusString) {
-      switch (statusString.toUpperCase()) {
-        case 'ABANDONED':
-        case 'CANCELLED':
-        case 'OFFER NOT ACCEPTED':
-        case 'OFFER RESCINDED':
-        case 'RETURNED':
-        case 'REVERTED':
-        case 'SOLD':
-        case 'SUSPENDED':
-        case 'WITHDRAWN':
-          return this.ABANDONED;
-
-        case 'ACCEPTED':
-        case 'ALLOWED':
-        case 'PENDING':
-        case 'RECEIVED':
-          return this.APPLICATION_UNDER_REVIEW;
-
-        case 'OFFER ACCEPTED':
-        case 'OFFERED':
-          return this.APPLICATION_REVIEW_COMPLETE;
-
-        case 'ACTIVE':
-        case 'COMPLETED':
-        case 'DISPOSITION IN GOOD STANDING':
-        case 'EXPIRED':
-        case 'HISTORIC':
-          return this.DECISION_APPROVED;
-
-        case 'DISALLOWED':
-          return this.DECISION_NOT_APPROVED;
-
-        case 'NOT USED':
-        case 'PRE-TANTALIS':
-          return this.UNKNOWN;
-      }
-    }
-    return this.UNKNOWN;
+  isAmendment(application: Application): boolean {
+    return (
+      application &&
+      application.status === StatusCodes.ABANDONED.code &&
+      (application.reason === ReasonCodes.AMENDMENT_APPROVED.code ||
+        application.reason === ReasonCodes.AMENDMENT_NOT_APPROVED.code)
+    );
   }
 
   /**
-   * Map status code to Tantalis Status(es).
+   * Returns true if the application has an abandoned status and does not have an amendment reason.
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an abandoned status and does not have an amendment
+   * reason, false otherwise.
+   * @memberof ApplicationService
    */
-  getTantalisStatus(statusCode: string): string[] {
-    if (statusCode) {
-      switch (statusCode.toUpperCase()) {
-        case this.ABANDONED:
-          return [
-            'ABANDONED',
-            'CANCELLED',
-            'OFFER NOT ACCEPTED',
-            'OFFER RESCINDED',
-            'RETURNED',
-            'REVERTED',
-            'SOLD',
-            'SUSPENDED',
-            'WITHDRAWN'
-          ];
-        case this.APPLICATION_UNDER_REVIEW:
-          return ['ACCEPTED', 'ALLOWED', 'PENDING', 'RECEIVED'];
-        case this.APPLICATION_REVIEW_COMPLETE:
-          return ['OFFER ACCEPTED', 'OFFERED'];
-        case this.DECISION_APPROVED:
-          return ['ACTIVE', 'COMPLETED', 'DISPOSITION IN GOOD STANDING', 'EXPIRED', 'HISTORIC'];
-        case this.DECISION_NOT_APPROVED:
-          return ['DISALLOWED'];
-      }
-    }
-    return null as string[];
+  isAbandoned(application: Application): boolean {
+    return (
+      application &&
+      application.status === StatusCodes.ABANDONED.code &&
+      application.reason !== ReasonCodes.AMENDMENT_APPROVED.code &&
+      application.reason !== ReasonCodes.AMENDMENT_NOT_APPROVED.code
+    );
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an under review status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isApplicationUnderReview(application: Application): boolean {
+    return application && application.status === StatusCodes.APPLICATION_UNDER_REVIEW.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has a review complete status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isApplicationReviewComplete(application: Application): boolean {
+    return application && application.status === StatusCodes.APPLICATION_REVIEW_COMPLETE.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has a decision approved status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isDecisionApproved(application: Application): boolean {
+    return application && application.status === StatusCodes.DECISION_APPROVED.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has a decision not approved status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isDecisionNotApproved(application: Application): boolean {
+    return application && application.status === StatusCodes.DECISION_NOT_APPROVED.code;
+  }
+
+  /**
+   *
+   *
+   * @param {Application} application
+   * @returns {boolean} true if the application has an unknown status, false otherwise.
+   * @memberof ApplicationService
+   */
+  isUnknown(application: Application): boolean {
+    return application && application.status === StatusCodes.UNKNOWN.code;
   }
 
   /**
    * Given a status code, returns a short user-friendly status string.
+   *
+   * @param {string} statusCode
+   * @returns {string}
+   * @memberof ApplicationService
    */
-  getShortStatusString(statusCode: string): string {
-    if (statusCode) {
-      switch (statusCode) {
-        case this.ABANDONED:
-          return 'Abandoned';
-        case this.APPLICATION_UNDER_REVIEW:
-          return 'Under Review';
-        case this.APPLICATION_REVIEW_COMPLETE:
-          return 'Decision Pending';
-        case this.DECISION_APPROVED:
-          return 'Approved';
-        case this.DECISION_NOT_APPROVED:
-          return 'Not Approved';
-        case this.UNKNOWN:
-          return 'Unknown';
-      }
-    }
-    return null as string;
+  getStatusStringShort(statusCode: string): string {
+    return ConstantUtils.getTextShort(CodeType.STATUS, statusCode) || StatusCodes.UNKNOWN.text.short;
   }
 
   /**
-   * Given a status code, returns a long user-friendly status string.
+   * Given an application, returns a long user-friendly status string.
+   *
+   * @param {Application} application
+   * @returns {string}
+   * @memberof ApplicationService
    */
-  getLongStatusString(statusCode: string): string {
-    if (statusCode) {
-      switch (statusCode) {
-        case this.ABANDONED:
-          return 'Abandoned';
-        case this.APPLICATION_UNDER_REVIEW:
-          return 'Application Under Review';
-        case this.APPLICATION_REVIEW_COMPLETE:
-          return 'Application Review Complete - Decision Pending';
-        case this.DECISION_APPROVED:
-          return 'Decision: Approved - Tenure Issued';
-        case this.DECISION_NOT_APPROVED:
-          return 'Decision: Not Approved';
-        case this.UNKNOWN:
-          return 'Unknown Status';
-      }
+  getStatusStringLong(application: Application): string {
+    if (!application) {
+      return StatusCodes.UNKNOWN.text.long;
     }
-    return null as string;
-  }
 
-  isAbandoned(statusCode: string): boolean {
-    return statusCode === this.ABANDONED;
-  }
-
-  isApplicationUnderReview(statusCode: string): boolean {
-    return statusCode === this.APPLICATION_UNDER_REVIEW;
-  }
-
-  isApplicationReviewComplete(statusCode: string): boolean {
-    return statusCode === this.APPLICATION_REVIEW_COMPLETE;
-  }
-
-  isDecisionApproved(statusCode: string): boolean {
-    return statusCode === this.DECISION_APPROVED;
-  }
-
-  isDecisionNotApproved(statusCode: string): boolean {
-    return statusCode === this.DECISION_NOT_APPROVED;
-  }
-
-  isUnknown(statusCode: string): boolean {
-    return statusCode === this.UNKNOWN;
-  }
-
-  /**
-   * Returns region code.
-   */
-  getRegionCode(businessUnit: string): string {
-    return businessUnit && businessUnit.toUpperCase().split(' ')[0];
-  }
-
-  /**
-   * Given a region code, returns a user-friendly region string.
-   */
-  getRegionString(abbrev: string): string {
-    if (abbrev) {
-      switch (abbrev) {
-        case this.CARIBOO:
-          return 'Cariboo, Williams Lake';
-        case this.KOOTENAY:
-          return 'Kootenay, Cranbrook';
-        case this.LOWER_MAINLAND:
-          return 'Lower Mainland, Surrey';
-        case this.OMENICA:
-          return 'Omenica/Peace, Prince George';
-        case this.PEACE:
-          return 'Peace, Ft. St. John';
-        case this.SKEENA:
-          return 'Skeena, Smithers';
-        case this.SOUTHERN_INTERIOR:
-          return 'Thompson Okanagan, Kamloops';
-        case this.VANCOUVER_ISLAND:
-          return 'West Coast, Nanaimo';
-      }
+    // If the application was abandoned, but the reason is due to an amendment, then return an amendment string instead
+    if (this.isAmendment(application)) {
+      return ConstantUtils.getTextLong(CodeType.REASON, application.reason);
     }
-    return null as string;
+
+    return (
+      (application && ConstantUtils.getTextLong(CodeType.STATUS, application.status)) || StatusCodes.UNKNOWN.text.long
+    );
   }
 }

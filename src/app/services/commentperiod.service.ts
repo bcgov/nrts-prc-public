@@ -4,14 +4,11 @@ import { map, catchError } from 'rxjs/operators';
 
 import { ApiService } from './api';
 import { CommentPeriod } from 'app/models/commentperiod';
+import { CommentCodes } from 'app/utils/constants/comment';
+import { ConstantUtils, CodeType } from 'app/utils/constants/constantUtils';
 
 @Injectable()
 export class CommentPeriodService {
-  // statuses / query param options
-  // use helpers to compare against these
-  readonly OPEN = 'OP';
-  readonly NOT_OPEN = 'NO';
-
   private commentPeriod: CommentPeriod = null; // for caching
 
   constructor(private api: ApiService) {}
@@ -62,39 +59,35 @@ export class CommentPeriodService {
   /**
    * Given a comment period, returns status code.
    */
-  getStatusCode(commentPeriod: CommentPeriod): string {
+  getCode(commentPeriod: CommentPeriod): string {
     if (commentPeriod && commentPeriod.startDate && commentPeriod.endDate) {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // eg, 'Tue Nov 20 2018 00:00:00 GMT-0800'
 
       if (commentPeriod.startDate <= today && commentPeriod.endDate >= today) {
-        return this.OPEN;
+        return CommentCodes.OPEN.code;
       }
     }
 
-    return this.NOT_OPEN;
+    return CommentCodes.NOT_OPEN.code;
   }
 
   /**
-   * Given a status code, returns a user-friendly status string.
+   * Given a status code, returns a user-friendly long status string.
+   *
+   * @param {string} commentPeriodStatusCode
+   * @returns {string}
+   * @memberof CommentPeriodService
    */
-  getStatusString(statusCode: string): string {
-    if (statusCode) {
-      switch (statusCode) {
-        case this.OPEN:
-          return 'Commenting Open';
-        case this.NOT_OPEN:
-          return 'Commenting Closed';
-      }
-    }
-    return null as string;
+  getStatusStringLong(commentPeriodStatusCode: string): string {
+    return ConstantUtils.getTextLong(CodeType.COMMENT, commentPeriodStatusCode);
   }
 
   isOpen(statusCode: string): boolean {
-    return statusCode === this.OPEN;
+    return statusCode === CommentCodes.OPEN.code;
   }
 
   isNotOpen(statusCode: string): boolean {
-    return statusCode === this.NOT_OPEN;
+    return statusCode === CommentCodes.NOT_OPEN.code;
   }
 }

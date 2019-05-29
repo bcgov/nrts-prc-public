@@ -6,25 +6,17 @@ import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { NgxPageScrollModule } from 'ngx-page-scroll';
 import { ApiService } from './services/api';
-import { ConfigService } from './services/config.service';
 
 describe('AppComponent', () => {
   const apiServiceStub = {
     apiPath: 'https://great-api.gov.bc.ca/api/public'
   };
 
-  const configServiceStub = {
-    init() {}
-  };
-
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [AppComponent, HeaderComponent, FooterComponent],
       imports: [RouterTestingModule, NgxPageScrollModule],
-      providers: [
-        { provide: ApiService, useValue: apiServiceStub },
-        { provide: ConfigService, useValue: configServiceStub }
-      ]
+      providers: [{ provide: ApiService, useValue: apiServiceStub }]
     }).compileComponents();
   }));
 

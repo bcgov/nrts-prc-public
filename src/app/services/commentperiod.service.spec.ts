@@ -302,11 +302,19 @@ describe('CommentPeriodService', () => {
     });
 
     it('returns a human readable NOT OPEN status string', () => {
-      expect(service.getStatusString(service.NOT_OPEN)).toEqual('Not Open For Commenting');
+      expect(service.getStatusStringLong('NOT_OPEN')).toEqual('Commenting Closed');
+    });
+
+    it('returns a human readable CLOSED status string', () => {
+      expect(service.getStatusStringLong('CLOSED')).toEqual('Commenting Closed');
+    });
+
+    it('returns a human readable NOT STARTED status string', () => {
+      expect(service.getStatusStringLong('NOT_STARTED')).toEqual('Commenting Not Started');
     });
 
     it('returns a human readable OPEN status string', () => {
-      expect(service.getStatusString(service.OPEN)).toEqual('Commenting Open');
+      expect(service.getStatusStringLong(CommentCodes.OPEN.code)).toEqual('Commenting Open');
     });
   });
 });
