@@ -10,10 +10,10 @@
 <div class="modal-body">
   <p>These purposes include the following sub-purposes:</p>
   <ul class="purpose-list">
-    <li class="purpose-list__item" *ngFor="let purpose of constants.purposes">
-      {{purpose | titlecase}}
+    <li class="purpose-list__item" *ngFor="let purposeGroup of purposeCodeGroups">
+      {{purposeGroup.code | titlecase}}
       <ul class="subpurpose-list">
-        <li class="subpurpose-list__item" *ngFor="let subpurpose of constants.subpurposes[purpose].sort()">
+        <li class="subpurpose-list__item" *ngFor="let subpurpose of purposeGroup.mappedCodes.sort()">
           {{subpurpose | titlecase}}
         </li>
       </ul>

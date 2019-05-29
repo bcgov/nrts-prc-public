@@ -2,6 +2,7 @@ import { CommentPeriod } from './commentperiod';
 import { Decision } from './decision';
 import { Document } from './document';
 import { Feature } from './feature';
+import { ConstantUtils, CodeType } from 'app/utils/constants/constantUtils';
 
 export class Application {
   // the following are retrieved from the API
@@ -19,6 +20,7 @@ export class Application {
   publishDate: Date = null;
   purpose: string;
   status: string;
+  reason: string;
   subpurpose: string;
   subtype: string;
   tantalisID: number;
@@ -27,9 +29,7 @@ export class Application {
   statusHistoryEffectiveDate: Date = null;
 
   region: string; // region code derived from Business Unit
-  appStatus: string; // user-friendly application status
-  appStatusCode: string; // application status code
-  cpStatusCode: string; // comment period status code
+  cpStatus: string; // comment period status code
 
   isLoaded = false; // whether this application is loaded in list
 
@@ -49,16 +49,15 @@ export class Application {
     this.location = (obj && obj.location) || null;
     this.name = (obj && obj.name) || null;
     this.purpose = (obj && obj.purpose) || null;
-    this.status = (obj && obj.status) || null;
+    this.status = (obj && obj.status && ConstantUtils.getCode(CodeType.STATUS, obj.status)) || null;
+    this.reason = (obj && obj.reason && ConstantUtils.getCode(CodeType.REASON, obj.reason)) || null;
     this.subpurpose = (obj && obj.subpurpose) || null;
     this.subtype = (obj && obj.subtype) || null;
     this.tantalisID = (obj && obj.tantalisID) || null; // not zero
     this.tenureStage = (obj && obj.tenureStage) || null;
     this.type = (obj && obj.type) || null;
-    this.region = (obj && obj.region) || null;
-    this.appStatus = (obj && obj.appStatus) || null;
-    this.appStatusCode = (obj && obj.appStatusCode) || null;
-    this.cpStatusCode = (obj && obj.cpStatusCode) || null;
+    this.region = (obj && obj.businessUnit && ConstantUtils.getTextLong(CodeType.REGION, obj.businessUnit)) || null;
+    this.cpStatus = (obj && obj.cpStatus) || null;
 
     if (obj && obj.publishDate) {
       this.publishDate = new Date(obj.publishDate);
