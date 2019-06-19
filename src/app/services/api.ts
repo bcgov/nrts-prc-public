@@ -274,13 +274,13 @@ export class ApiService {
   // Features
   //
   getFeaturesByTantalisId(tantalisID: number): Observable<Feature[]> {
-    const fields = ['applicationID', 'geometry', 'geometryName', 'properties', 'type'];
+    const fields = ['applicationID', 'geometry', 'properties', 'type'];
     const queryString = `feature?tantalisId=${tantalisID}&fields=${this.buildValues(fields)}`;
     return this.http.get<Feature[]>(`${this.apiPath}/${queryString}`);
   }
 
   getFeaturesByApplicationId(applicationId: string): Observable<Feature[]> {
-    const fields = ['applicationID', 'geometry', 'geometryName', 'properties', 'type'];
+    const fields = ['applicationID', 'geometry', 'properties', 'type'];
     const queryString = `feature?applicationId=${applicationId}&fields=${this.buildValues(fields)}`;
     return this.http.get<Feature[]>(`${this.apiPath}/${queryString}`);
   }
