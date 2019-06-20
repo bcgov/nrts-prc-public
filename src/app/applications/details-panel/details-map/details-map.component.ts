@@ -73,8 +73,6 @@ export class DetailsMapComponent implements AfterViewInit, OnDestroy {
       // safety check
       this.application.features.forEach(f => {
         const feature = JSON.parse(JSON.stringify(f));
-        // needs to be valid GeoJSON
-        delete feature.geometry_name;
         const featureObj: GeoJSON.Feature<any> = feature;
         const layer = L.geoJSON(featureObj);
         this.appFG.addLayer(layer);

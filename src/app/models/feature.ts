@@ -2,12 +2,17 @@
 // this is the data structure as returned by Tantalis
 //
 export class Feature {
+  id: string;
+  type: string;
   geometry: {
     type: string;
-    coordinates: any;
+    geometries: [
+      {
+        type: string;
+        coordinates: any;
+      }
+    ];
   };
-  geometry_name: string;
-  id: string;
   properties: {
     CODE_CHR_STAGE: string;
     CROWN_LANDS_FILE: string;
@@ -32,13 +37,11 @@ export class Feature {
     TENURE_SUBTYPE: string;
     TENURE_TYPE: string;
   };
-  type: string;
 
   constructor(obj?: any) {
-    this.geometry = (obj && obj.geometry) || null;
-    this.geometry_name = (obj && obj.geometry_name) || null;
     this.id = (obj && obj.id) || null;
-    this.properties = (obj && obj.properties) || null;
     this.type = (obj && obj.type) || null;
+    this.geometry = (obj && obj.geometry) || null;
+    this.properties = (obj && obj.properties) || null;
   }
 }
