@@ -33,6 +33,9 @@ podTemplate(label: sonarqubePodLabel, name: sonarqubePodLabel, serviceAccount: '
 
 pipeline {
   agent any
+  options {
+    skipDefaultCheckout()
+  }
   stages {
     stage('Building: public (master branch)') {
       steps {
