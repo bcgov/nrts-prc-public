@@ -20,7 +20,6 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
   @Input() applications: Application[] = []; // from applications component
   @Input() isListVisible: Application[] = []; // from applications component
   @Output() setCurrentApp = new EventEmitter(); // to applications component
-  @Output() unsetCurrentApp = new EventEmitter(); // to applications component
 
   private currentApp: Application = null; // for selecting app in list
   public isListLoading = true; // initial value
@@ -82,10 +81,6 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
       if (!this.isCurrentApp(item)) {
         this.currentApp = item; // set
         this.setCurrentApp.emit(item);
-      } else {
-        // DO NOT UNSET DETAILS AT THIS TIME
-        // this.currentApp = null; // unset
-        // this.unsetCurrentApp.emit(item);
       }
     }
   }

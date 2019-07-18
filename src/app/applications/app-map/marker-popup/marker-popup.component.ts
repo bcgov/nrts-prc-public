@@ -6,6 +6,7 @@ import { Application } from 'app/models/application';
 import { ApplicationService } from 'app/services/application.service';
 import { CommentPeriodService } from 'app/services/commentperiod.service';
 import { UrlService } from 'app/services/url.service';
+import { Panel } from 'app/applications/utils/panel.enum';
 
 @Component({
   templateUrl: './marker-popup.component.html',
@@ -37,7 +38,7 @@ export class MarkerPopupComponent implements OnInit, OnDestroy {
 
   // show Details panel for this app
   public showDetails() {
-    this.urlService.save('id', this.app._id);
-    this.urlService.setFragment('details');
+    this.urlService.setQueryParam('id', this.app._id);
+    this.urlService.setFragment(Panel.details);
   }
 }

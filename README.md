@@ -90,7 +90,7 @@ Recommend installing the [VSCode Prettier extension](https://github.com/prettier
 
 ### Pre-Commit Hooks
 
-Package.json has been configured to use `husky`/`lint-staged` to run the `lint-fix` (linting + formatting) commands, against the files staged to be committed, whenever you perform a commit.  This ensures that all committed code has been linted and formatted correctly.
+Package.json has been configured to use `husky` with `lint-staged` to run the `lint-fix` (linting + formatting) commands, against the files staged to be committed, whenever you perform a git commit.  This ensures that all committed code has been linted and formatted correctly.
 
 If the linters or formatters find issues that cannot be automatically fixed, it will throw an error and provide output as to what is wrong.  Fix the issues and commit again.
 
@@ -111,7 +111,7 @@ npm run lint
 
 ## Run Linters + Formatters
 
-_Note: In the worst case scenario, where linting/formatting has been neglected, then these `lint-fix` commands have the potential to create 100's of file changes.  In this case, it is recommended to only run these commands as part of a separate commit._
+_Note: In the worst case scenario, where linting/formatting has been neglected, then these `lint-fix` commands have the potential to create hundreds or thousands of file changes.  In this case, it is recommended to only run these commands as part of a separate commit._
 
 _Note: Not all linting/formatting errors can be automatically fixed, and will require human intervention._
 

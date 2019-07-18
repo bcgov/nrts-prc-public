@@ -34,11 +34,9 @@ export class ApplicationService {
       appStatuses:
         filters &&
         _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getMappedCodes(CodeType.STATUS, statusCode)),
-      applicant: filters && filters.applicant,
       clidDtid: filters && filters.clidDtid,
       purposes:
         filters && _.flatMap(filters.purposes, purposeCode => ConstantUtils.getCode(CodeType.PURPOSE, purposeCode)),
-      subpurposes: filters && filters.subpurposes,
       publishSince: filters && filters.publishFrom ? filters.publishFrom.toISOString() : null,
       publishUntil: filters && filters.publishTo ? filters.publishTo.toISOString() : null,
       coordinates: coordinates
@@ -94,11 +92,9 @@ export class ApplicationService {
       appStatuses:
         filters &&
         _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getMappedCodes(CodeType.STATUS, statusCode)),
-      applicant: filters && filters.applicant,
       clidDtid: filters && filters.clidDtid,
       purposes:
         filters && _.flatMap(filters.purposes, purposeCode => ConstantUtils.getCode(CodeType.PURPOSE, purposeCode)),
-      subpurposes: filters && filters.subpurposes,
       publishSince: filters && filters.publishFrom ? filters.publishFrom.toISOString() : null,
       publishUntil: filters && filters.publishTo ? filters.publishTo.toISOString() : null,
       coordinates: coordinates

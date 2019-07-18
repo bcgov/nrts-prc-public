@@ -23,6 +23,7 @@ export class SplashModalComponent {
 
   public dismiss() {
     this.activeModal.close(SplashModalResult.Dismissed);
+    this.router.navigate([], { relativeTo: this.activatedRoute, replaceUrl: true });
   }
 
   public find() {
