@@ -59,7 +59,6 @@ const markerIconLg = L.icon({
 export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() isLoading: boolean; // from applications component
   @Input() applications: Application[] = []; // from applications component
-  @Input() isMapVisible: Application[] = []; // from applications component
   @Output() toggleCurrentApp = new EventEmitter(); // to applications component
   @Output() updateCoordinates = new EventEmitter(); // to applications component
 
@@ -92,9 +91,9 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       // // try to load new map state
       // if (this.isMapReady) {
       //   // TODO: could also get params from event.url
-      //   const lat = this.urlService.query('lat');
-      //   const lng = this.urlService.query('lng');
-      //   const zoom = this.urlService.query('zoom');
+      //   const lat = this.urlService.getQueryParam('lat');
+      //   const lng = this.urlService.getQueryParam('lng');
+      //   const zoom = this.urlService.getQueryParam('zoom');
       //   if (lat && lng && zoom) {
       //     console.log('...updating map state');
       //     this.map.setView(L.latLng(+lat, +lng), +zoom);
@@ -240,9 +239,9 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       //   console.log('...saving map state');
       //   const center = this.map.getCenter();
       //   const zoom = this.map.getZoom();
-      //   this.urlService.save('lat', center.lat.toFixed(4).toString());
-      //   this.urlService.save('lng', center.lng.toFixed(4).toString());
-      //   this.urlService.save('zoom', zoom.toFixed(1).toString());
+      //   this.urlService.setQueryParam('lat', center.lat.toFixed(4).toString());
+      //   this.urlService.setQueryParam('lng', center.lng.toFixed(4).toString());
+      //   this.urlService.setQueryParam('zoom', zoom.toFixed(1).toString());
       // }
     });
 
@@ -300,9 +299,9 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     // console.log('fixing map');
     if (this.elementRef.nativeElement.offsetParent) {
       // try to restore map state
-      const lat = this.urlService.query('lat');
-      const lng = this.urlService.query('lng');
-      const zoom = this.urlService.query('zoom');
+      const lat = this.urlService.getQueryParam('lat');
+      const lng = this.urlService.getQueryParam('lng');
+      const zoom = this.urlService.getQueryParam('zoom');
 
       if (lat && lng && zoom) {
         this.map.setView(L.latLng(+lat, +lng), +zoom); // NOTE: unary operators
@@ -316,27 +315,24 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   // called when apps list changes
   public ngOnChanges(changes: SimpleChanges) {
-    // update map only if it's visible
-    if (this.isMapVisible) {
-      if (changes.applications && !changes.applications.firstChange && changes.applications.currentValue) {
-        // console.log('map: got changed apps =', changes.applications);
+    if (changes.applications && !changes.applications.firstChange && changes.applications.currentValue) {
+      // console.log('map: got changed apps =', changes.applications);
 
-        const deletedApps = _.differenceBy(
-          changes.applications.previousValue as Application[],
-          changes.applications.currentValue as Application[],
-          '_id'
-        );
-        const addedApps = _.differenceBy(
-          changes.applications.currentValue as Application[],
-          changes.applications.previousValue as Application[],
-          '_id'
-        );
-        // console.log('deleted =', deletedApps);
-        // console.log('added =', addedApps);
+      const deletedApps = _.differenceBy(
+        changes.applications.previousValue as Application[],
+        changes.applications.currentValue as Application[],
+        '_id'
+      );
+      const addedApps = _.differenceBy(
+        changes.applications.currentValue as Application[],
+        changes.applications.previousValue as Application[],
+        '_id'
+      );
+      // console.log('deleted =', deletedApps);
+      // console.log('added =', addedApps);
 
-        // (re)draw the matching apps
-        this.drawMap(deletedApps, addedApps);
-      }
+      // (re)draw the matching apps
+      this.drawMap(deletedApps, addedApps);
     }
   }
 
@@ -366,14 +362,16 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
    */
   public resetView(doNotify: boolean = true) {
     // console.log('resetting view');
-    this.doNotify = doNotify;
-    this.fitBounds(); // default bounds
+    if (this.map) {
+      this.doNotify = doNotify;
+      this.fitBounds(); // default bounds
+    }
 
     // FUTURE
     // // clear map state
-    // this.urlService.save('lat', null);
-    // this.urlService.save('lng', null);
-    // this.urlService.save('zoom', null);
+    // this.urlService.setQueryParam('lat', null);
+    // this.urlService.setQueryParam('lng', null);
+    // this.urlService.setQueryParam('zoom', null);
     // this.emitCoordinates();
   }
 
@@ -528,36 +526,39 @@ export class AppMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   /**
    * Called when an app is selected or unselected.
    */
-  public async onHighlightApplication(app: Application, show: boolean) {
-    // reset icon on previous marker, if any
+  public async highlightApplication(app: Application) {
+    if (!app) {
+      return;
+    }
+
+    this.unhighlightApplications();
+
+    // wait for apps to finish loading
+    // ref: https://basarat.gitbooks.io/typescript/docs/async-await.html
+    while (this.isLoading) {
+      await this.delay(100);
+    }
+
+    const marker = _.find(this.markerList, { dispositionId: app.tantalisID });
+    if (marker) {
+      this.currentMarker = marker;
+      marker.setIcon(markerIconLg);
+      const visibleParent = this.markerClusterGroup.getVisibleParent(marker);
+      // if marker is in a cluster, zoom into it
+      if (marker !== visibleParent) {
+        this.markerClusterGroup.zoomToShowLayer(marker);
+      }
+      // if not already open, show popup
+      if (!marker.getPopup() || !marker.getPopup().isOpen()) {
+        this.onMarkerClick(app, { target: marker });
+      }
+    }
+  }
+
+  public unhighlightApplications() {
     if (this.currentMarker) {
       this.currentMarker.setIcon(markerIcon);
       this.currentMarker = null;
-    }
-
-    // set icon on new marker
-    if (show && app) {
-      // safety check
-      // wait for apps to finish loading
-      // ref: https://basarat.gitbooks.io/typescript/docs/async-await.html
-      while (this.isLoading) {
-        await this.delay(100);
-      }
-
-      const marker = _.find(this.markerList, { dispositionId: app.tantalisID });
-      if (marker) {
-        this.currentMarker = marker;
-        marker.setIcon(markerIconLg);
-        const visibleParent = this.markerClusterGroup.getVisibleParent(marker);
-        // if marker is in a cluster, zoom into it
-        if (marker !== visibleParent) {
-          this.markerClusterGroup.zoomToShowLayer(marker);
-        }
-        // if not already open, show popup
-        if (!marker.getPopup() || !marker.getPopup().isOpen()) {
-          this.onMarkerClick(app, { target: marker });
-        }
-      }
     }
   }
 

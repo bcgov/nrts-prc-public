@@ -1,25 +1,22 @@
-<div class="applications-view" [ngClass]="isSidePanelVisible ? 'side-panel__open':'side-panel__closed'">
+<div class="applications-view" [ngClass]="activePanel ? 'side-panel__open' : 'side-panel__closed'">
   <h1 class="sr-only">Find Applications in British Columbia</h1>
 
   <div class="side-nav">
     <ul>
-      <li class="side-nav-item"
-        [ngClass]="{'active': isSidePanelVisible && isFindAppsVisible}">
-        <button class="btn" (click)="toggleFind()">
+      <li class="side-nav-item" [ngClass]="{'active': activePanel === Panel.find}">
+        <button class="btn" (click)="togglePanel(Panel.find)">
           <i class="material-icons">search</i>
           <div>Find</div>
         </button>
       </li>
-      <li class="side-nav-item"
-        [ngClass]="{'active': isSidePanelVisible && isExploreAppsVisible}">
-        <button class="btn" (click)="toggleExplore()">
+      <li class="side-nav-item" [ngClass]="{'active': activePanel === Panel.Explore}">
+        <button class="btn" (click)="togglePanel(Panel.Explore)">
           <i class="material-icons">visibility</i>
           <div>Explore</div>
         </button>
       </li>
-      <li class="side-nav-item"
-        [ngClass]="{'active': isSidePanelVisible && isAppDetailsVisible}">
-        <button class="btn" (click)="toggleDetails()">
+      <li class="side-nav-item" [ngClass]="{'active': activePanel === Panel.details}">
+        <button class="btn" (click)="togglePanel(Panel.details)">
           <i class="material-icons">info</i>
           <div>Details</div>
         </button>
@@ -31,24 +28,18 @@
     <button class="close-btn btn btn-icon" (click)="closeSidePanel()">
       <i class="material-icons">close</i>
     </button>
-    <app-details-panel #detailsPanel
-      (loadingApp)="disableSplash()"
-      (setCurrentApp)="updateDetails($event, true)"
-      (unsetCurrentApp)="updateDetails($event, false)"
-      [hidden]="!isAppDetailsVisible">
-    </app-details-panel>
     <app-find-panel #findPanel
-      (updateFilters)="disableSplash();updateFindFilters($event)"
-      (hideSidePanel)="closeSidePanel()"
-      (resetView)="appmap.resetView(false)"
-      [hidden]="!isFindAppsVisible">
+      (update)="handleFindUpdate($event)"
+      [hidden]="activePanel !== Panel.find">
     </app-find-panel>
     <app-explore-panel #explorePanel
-      (updateFilters)="disableSplash();updateExploreFilters($event)"
-      (hideSidePanel)="closeSidePanel()"
-      (resetView)="appmap.resetView(false)"
-      [hidden]="!isExploreAppsVisible">
+      (update)="handleExploreUpdate($event)"
+      [hidden]="activePanel !== Panel.Explore">
     </app-explore-panel>
+    <app-details-panel #detailsPanel
+      (update)="handleDetailsUpdate($event)"
+      [hidden]="activePanel !== Panel.details">
+    </app-details-panel>
   </div>
 
   <div class="main-panel">
@@ -57,21 +48,13 @@
         <span *ngIf="totalNumber == 0">No Results Found</span>
         <span *ngIf="totalNumber> 0"><strong>{{totalNumber}}</strong> {{totalNumber !== 1 ? 'Applications' : 'Application'}} Found</span>
       </span>
-      <span class="app-results__clear" *ngIf="findPanel.filterCount() > 0 || explorePanel.filterCount() > 0">
-        <button class="clear-btn btn btn-sm btn-link" (click)="clearFilters()">Clear Filters</button>
+      <span class="app-results__clear" *ngIf="areFiltersSet()">
+        <button class="clear-btn btn btn-sm btn-link" (click)="clearFilters();">Clear Filters</button>
       </span>
     </div>
-    <app-list class="app-list" style="display: none;" #applist
-      [isLoading]="isLoading"
-      [applications]="apps"
-      [isListVisible]="isApplicationsListVisible"
-      (setCurrentApp)="appmap.onHighlightApplication($event, true)"
-      (unsetCurrentApp)="appmap.onHighlightApplication($event, false)">
-    </app-list>
     <app-map class="app-map" #appmap
       [isLoading]="isLoading"
       [applications]="apps"
-      [isMapVisible]="isApplicationsMapVisible"
       (toggleCurrentApp)="applist.toggleCurrentApp($event)"
       (updateCoordinates)="updateCoordinates()">
     </app-map>

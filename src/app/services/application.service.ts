@@ -1,12 +1,11 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, combineLatest, merge } from 'rxjs';
+import { Observable, of, combineLatest } from 'rxjs';
 import { map, mergeMap, catchError } from 'rxjs/operators';
 import * as _ from 'lodash';
 import * as moment from 'moment';
 
-import { IFiltersType } from 'app/applications/applications.component';
 import { Application } from 'app/models/application';
-import { ApiService } from './api';
+import { ApiService, IQueryParamSet, QueryParamModifier } from './api';
 import { DocumentService } from './document.service';
 import { CommentPeriodService } from './commentperiod.service';
 import { DecisionService } from './decision.service';
@@ -16,6 +15,30 @@ import { StatusCodes, ReasonCodes } from 'app/utils/constants/application';
 import { ConstantUtils, CodeType } from 'app/utils/constants/constantUtils';
 import { CommentCodes } from 'app/utils/constants/comment';
 
+/**
+ * All supported filters.
+ *
+ * @export
+ * @interface IFiltersType
+ */
+export interface IFiltersType {
+  // Find panel
+  clidDtid?: string;
+
+  // Explore panel
+  publishFrom?: Date;
+  publishTo?: Date;
+  cpStatuses?: string[];
+  purposes?: string[];
+  appStatuses?: string[];
+}
+
+/**
+ * Provides supporting methods for working with applications.
+ *
+ * @export
+ * @class ApplicationService
+ */
 @Injectable()
 export class ApplicationService {
   private application: Application = null; // for caching
@@ -28,166 +51,202 @@ export class ApplicationService {
     private featureService: FeatureService
   ) {}
 
-  // get count of matching applications
-  getCount(filters: IFiltersType, coordinates: string): Observable<number> {
-    const baseQueryParams = {
-      appStatuses:
-        filters &&
-        _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getMappedCodes(CodeType.STATUS, statusCode)),
-      applicant: filters && filters.applicant,
-      clidDtid: filters && filters.clidDtid,
-      purposes:
-        filters && _.flatMap(filters.purposes, purposeCode => ConstantUtils.getCode(CodeType.PURPOSE, purposeCode)),
-      subpurposes: filters && filters.subpurposes,
-      publishSince: filters && filters.publishFrom ? filters.publishFrom.toISOString() : null,
-      publishUntil: filters && filters.publishTo ? filters.publishTo.toISOString() : null,
-      coordinates: coordinates
+  /**
+   * Given filters and coordinates, build an array of query parameter sets.
+   *
+   * Each query parameter set in the array will return a distinct set of results.
+   *
+   * The combined results from all query parameter sets is needed to fully satisfy the given search filters and
+   * coordinates.
+   *
+   * @param {IFiltersType} filters
+   * @param {string} coordinates
+   * @returns {IQueryParamSet[]} An array of distinct query parameter sets.
+   * @memberof ApplicationService
+   */
+  buildQueryParamSets(filters: IFiltersType, coordinates: string): IQueryParamSet[] {
+    let queryParamSets: IQueryParamSet[] = [];
+
+    // None of these filters require manipulation or unique considerations
+    const basicQueryParams: IQueryParamSet = {
+      clidDtid: { value: filters && filters.clidDtid },
+      purposes: {
+        value:
+          filters && _.flatMap(filters.purposes, purposeCode => ConstantUtils.getCode(CodeType.PURPOSE, purposeCode))
+      },
+      publishSince: { value: filters && filters.publishFrom ? filters.publishFrom.toISOString() : null },
+      publishUntil: { value: filters && filters.publishTo ? filters.publishTo.toISOString() : null },
+      coordinates: { value: coordinates }
     };
 
+    // Certain Statuses require unique considerations, which are accounted for here
+
+    const appStatusCodeGroups =
+      filters && _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getCodeGroup(CodeType.STATUS, statusCode));
+
+    appStatusCodeGroups.forEach(statusCodeGroup => {
+      if (statusCodeGroup === StatusCodes.ABANDONED) {
+        // Fetch applications with Abandoned Status that don't have a Reason indicating an amendment.
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: StatusCodes.ABANDONED.mappedCodes },
+          appReasons: {
+            value: [ReasonCodes.AMENDMENT_APPROVED.code, ReasonCodes.AMENDMENT_NOT_APPROVED.code],
+            modifier: QueryParamModifier.Not_Equal
+          }
+        });
+      } else if (statusCodeGroup === StatusCodes.DECISION_APPROVED) {
+        // Fetch applications with Approved status
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: statusCodeGroup.mappedCodes }
+        });
+
+        // Also fetch applications with an Abandoned status that also have a Reason indicating an approved amendment.
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: StatusCodes.ABANDONED.mappedCodes },
+          appReasons: {
+            value: [ReasonCodes.AMENDMENT_APPROVED.code],
+            modifier: QueryParamModifier.Equal
+          }
+        });
+      } else if (statusCodeGroup === StatusCodes.DECISION_NOT_APPROVED) {
+        // Fetch applications with Not Approved status
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: statusCodeGroup.mappedCodes }
+        });
+
+        // Also fetch applications with an Abandoned status that also have a Reason indicating a not approved amendment.
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: StatusCodes.ABANDONED.mappedCodes },
+          appReasons: {
+            value: [ReasonCodes.AMENDMENT_NOT_APPROVED.code],
+            modifier: QueryParamModifier.Equal
+          }
+        });
+      } else {
+        // This status requires no special treatment, fetch as normal
+        queryParamSets.push({
+          ...basicQueryParams,
+          appStatuses: { value: statusCodeGroup.mappedCodes }
+        });
+      }
+    });
+
+    // if no status filters selected, still add the basic query filters
+    if (queryParamSets.length === 0) {
+      queryParamSets = [{ ...basicQueryParams }];
+    }
+
     // handle comment period filtering
+
     const cpOpen = filters && filters.cpStatuses.includes(CommentCodes.OPEN.code);
     const cpNotOpen = filters && filters.cpStatuses.includes(CommentCodes.NOT_OPEN.code);
 
-    // if both cpOpen and cpNotOpen or neither cpOpen nor cpNotOpen then use no cpStart or cpEnd filters
-    if ((cpOpen && cpNotOpen) || (!cpOpen && !cpNotOpen)) {
-      return this.api.getCountApplications(baseQueryParams).pipe(catchError(this.api.handleError));
-    }
-
     const now = moment();
-    // watch out -- Moment mutates objects!
     const yesterday = now.clone().subtract(1, 'days');
     const tomorrow = now.clone().add(1, 'days');
 
     // if cpOpen then filter by cpStart <= today && cpEnd >= today
-    if (cpOpen) {
-      return this.api
-        .getCountApplications({
-          cpStartUntil: now.endOf('day').toISOString(),
-          cpEndSince: now.startOf('day').toISOString(),
-          ...baseQueryParams
-        })
-        .pipe(catchError(this.api.handleError));
+    if (cpOpen && !cpNotOpen) {
+      queryParamSets = queryParamSets.map(queryParamSet => {
+        return {
+          ...queryParamSet,
+          cpStartUntil: { value: now.endOf('day').toISOString() },
+          cpEndSince: { value: now.startOf('day').toISOString() }
+        };
+      });
     }
 
-    // else cpNotOpen (ie, closed or future) then filter by cpEnd <= yesterday || cpStart >= tomorrow
-    // NB: this will not return apps that do not have a comment period
-    const closed = this.api.getCountApplications({
-      cpEndUntil: yesterday.endOf('day').toISOString(),
-      ...baseQueryParams
-    });
-    const future = this.api.getCountApplications({
-      cpStartSince: tomorrow.startOf('day').toISOString(),
-      ...baseQueryParams
-    });
+    // else if cpNotOpen then filter by cpEnd <= yesterday || cpStart >= tomorrow
+    if (!cpOpen && cpNotOpen) {
+      // we need to duplicate our existing query param sets
+      let queryParamSetsCopy = _.cloneDeep(queryParamSets);
 
-    return combineLatest(closed, future, (v1: number, v2: number) => v1 + v2).pipe(catchError(this.api.handleError));
+      // add this comment period date fitler to the original set
+      queryParamSets = queryParamSets.map(queryParamSet => {
+        return {
+          ...queryParamSet,
+          cpEndUntil: { value: yesterday.endOf('day').toISOString() }
+        };
+      });
+
+      // add this comment period date fitler to the duplicated set
+      queryParamSetsCopy = queryParamSetsCopy.map(queryParamSet => {
+        return {
+          ...queryParamSet,
+          cpStartSince: { value: tomorrow.startOf('day').toISOString() }
+        };
+      });
+
+      // combine sets
+      queryParamSets = queryParamSets.concat(queryParamSetsCopy);
+    }
+
+    return queryParamSets;
   }
 
-  // get matching applications without their meta (documents, comment period, decisions, etc)
+  /**
+   * Fetches the count of applications that match the given query parameter filters.
+   *
+   * @param {IFiltersType} filters
+   * @param {string} coordinates
+   * @returns {Observable<number>}
+   * @memberof ApplicationService
+   */
+  getCount(filters: IFiltersType, coordinates: string): Observable<number> {
+    const queryParamSets = this.buildQueryParamSets(filters, coordinates);
+
+    const observables: Array<Observable<number>> = queryParamSets.map(queryParamSet =>
+      this.api.getCountApplications(queryParamSet).pipe(catchError(this.api.handleError))
+    );
+
+    return combineLatest(observables, (...args: number[]) => args.reduce((sum, arg) => (sum += arg))).pipe(
+      catchError(this.api.handleError)
+    );
+  }
+
+  /**
+   * Fetch all applications that match the given query parameter filters.
+   *
+   * Note: Doesn't include any secondary application data (documents, comment period, decisions, etc)
+   *
+   * @param {number} [pageNum=0]
+   * @param {number} [pageSize=1000]
+   * @param {IFiltersType} filters
+   * @param {string} coordinates
+   * @returns {Observable<Application[]>}
+   * @memberof ApplicationService
+   */
   getAll(
     pageNum: number = 0,
     pageSize: number = 1000,
     filters: IFiltersType,
     coordinates: string
   ): Observable<Application[]> {
-    const baseQueryParams = {
-      appStatuses:
-        filters &&
-        _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getMappedCodes(CodeType.STATUS, statusCode)),
-      applicant: filters && filters.applicant,
-      clidDtid: filters && filters.clidDtid,
-      purposes:
-        filters && _.flatMap(filters.purposes, purposeCode => ConstantUtils.getCode(CodeType.PURPOSE, purposeCode)),
-      subpurposes: filters && filters.subpurposes,
-      publishSince: filters && filters.publishFrom ? filters.publishFrom.toISOString() : null,
-      publishUntil: filters && filters.publishTo ? filters.publishTo.toISOString() : null,
-      coordinates: coordinates
-    };
+    const queryParamSets = this.buildQueryParamSets(filters, coordinates);
 
-    // handle comment period filtering
-    const cpOpen = filters && filters.cpStatuses.includes(CommentCodes.OPEN.code);
-    const cpNotOpen = filters && filters.cpStatuses.includes(CommentCodes.NOT_OPEN.code);
-
-    // if both cpOpen and cpNotOpen or neither cpOpen nor cpNotOpen then use no cpStart or cpEnd filters
-    if ((cpOpen && cpNotOpen) || (!cpOpen && !cpNotOpen)) {
-      return this.api
-        .getApplications({
-          pageNum: pageNum,
-          pageSize: pageSize,
-          ...baseQueryParams
-        })
-        .pipe(
-          map((res: Application[]) => {
-            if (!res || res.length === 0) {
-              return [] as Application[];
-            }
-
-            const applications: Application[] = [];
-            res.forEach(application => {
-              applications.push(new Application(application));
-            });
-
-            return applications;
-          }),
-          catchError(this.api.handleError)
-        );
-    }
-
-    const now = moment();
-    // watch out -- Moment mutates objects!
-    const yesterday = now.clone().subtract(1, 'days');
-    const tomorrow = now.clone().add(1, 'days');
-
-    // if cpOpen then filter by cpStart <= today && cpEnd >= today
-    if (cpOpen) {
-      return this.api
-        .getApplications({
-          pageNum: pageNum,
-          pageSize: pageSize,
-          cpStartUntil: now.endOf('day').toISOString(),
-          cpEndSince: now.startOf('day').toISOString(),
-          ...baseQueryParams
-        })
-        .pipe(
-          map((res: Application[]) => {
-            if (!res || res.length === 0) {
-              return [] as Application[];
-            }
-
-            const applications: Application[] = [];
-            res.forEach(application => {
-              applications.push(new Application(application));
-            });
-
-            return applications;
-          }),
-          catchError(this.api.handleError)
-        );
-    }
-
-    // else cpNotOpen (ie, closed or future) then filter by cpEnd <= yesterday || cpStart >= tomorrow
-    // NB: this doesn't return apps without comment periods
-    const closed = this.api.getApplications({
-      pageNum: pageNum,
-      pageSize: pageSize,
-      cpEndUntil: yesterday.endOf('day').toISOString(),
-      ...baseQueryParams
-    });
-    const future = this.api.getApplications({
-      pageNum: pageNum,
-      pageSize: pageSize,
-      cpStartSince: tomorrow.startOf('day').toISOString(),
-      ...baseQueryParams
+    const observables: Array<Observable<Application[]>> = queryParamSets.map(queryParamSet => {
+      const queryParamSetWithPagination = {
+        ...queryParamSet,
+        pageNum: { value: pageNum },
+        pageSize: { value: pageSize }
+      };
+      return this.api.getApplications(queryParamSetWithPagination);
     });
 
-    return merge(closed, future).pipe(
+    return combineLatest(...observables).pipe(
       map((res: Application[]) => {
-        if (!res || res.length === 0) {
+        const resApps = _.flatten(res);
+        if (!resApps || resApps.length === 0) {
           return [] as Application[];
         }
 
         const applications: Application[] = [];
-        res.forEach(application => {
+        resApps.forEach(application => {
           applications.push(new Application(application));
         });
 
@@ -197,7 +256,14 @@ export class ApplicationService {
     );
   }
 
-  // get a specific application by its id
+  /**
+   * Fetch a single application by its id.
+   *
+   * @param {string} appId
+   * @param {boolean} [forceReload=false]
+   * @returns {Observable<Application>}
+   * @memberof ApplicationService
+   */
   getById(appId: string, forceReload: boolean = false): Observable<Application> {
     if (this.application && this.application._id === appId && !forceReload) {
       return of(this.application);

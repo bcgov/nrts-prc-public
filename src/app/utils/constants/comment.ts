@@ -8,13 +8,7 @@ import { ICodeGroup } from './interfaces';
  * @implements {ICodeSet}
  */
 export class CommentCodes {
-  public static readonly NOT_STARTED: ICodeGroup = {
-    code: 'NOT_STARTED',
-    param: 'NS',
-    text: { long: 'Commenting Not Started', short: 'Not Started' },
-    mappedCodes: []
-  };
-
+  // Comment period does not exist
   public static readonly NOT_OPEN: ICodeGroup = {
     code: 'NOT_OPEN',
     param: 'NO',
@@ -22,6 +16,15 @@ export class CommentCodes {
     mappedCodes: []
   };
 
+  // Comment period will open in the future
+  public static readonly NOT_STARTED: ICodeGroup = {
+    code: 'NOT_STARTED',
+    param: 'NS',
+    text: { long: 'Commenting Not Started', short: 'Not Started' },
+    mappedCodes: []
+  };
+
+  // Comment period is closed
   public static readonly CLOSED: ICodeGroup = {
     code: 'CLOSED',
     param: 'CL',
@@ -29,6 +32,7 @@ export class CommentCodes {
     mappedCodes: []
   };
 
+  // Comment period is currently open
   public static readonly OPEN: ICodeGroup = {
     code: 'OPEN',
     param: 'OP',
@@ -41,8 +45,8 @@ export class CommentCodes {
    * @memberof CommentCodes
    */
   public getCodeGroups = () => [
-    CommentCodes.NOT_STARTED,
     CommentCodes.NOT_OPEN,
+    CommentCodes.NOT_STARTED,
     CommentCodes.CLOSED,
     CommentCodes.OPEN
   ];
