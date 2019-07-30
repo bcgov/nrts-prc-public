@@ -9,7 +9,6 @@ import { ApplicationService } from 'app/services/application.service';
 import { UrlService } from 'app/services/url.service';
 import { of } from 'rxjs';
 import { Renderer2 } from '@angular/core';
-import { ConfigService } from 'app/services/config.service';
 import { MockComponent } from 'ng-mocks';
 import { DetailsPanelComponent } from './details-panel/details-panel.component';
 import { FindPanelComponent } from './find-panel/find-panel.component';
@@ -41,7 +40,6 @@ describe('ApplicationsComponent', () => {
       providers: [
         { provide: MatSnackBar, useValue: matSnackBarSpy },
         { provide: ApplicationService, useValue: applicationServiceSpy },
-        ConfigService,
         { provide: UrlService, useValue: urlServiceSpy },
         Renderer2
       ]
