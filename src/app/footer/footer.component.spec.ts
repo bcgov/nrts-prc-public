@@ -30,9 +30,8 @@ describe('FooterComponent', () => {
   });
 
   it('it renders a link to the admin page using the api service admin url', () => {
-    const compiled = fixture.debugElement.nativeElement;
-    const adminLink = compiled.querySelector('a.gtm-admin-login');
+    const adminLink = fixture.debugElement.nativeElement.querySelector('a.gtm-admin-login');
     expect(adminLink.textContent).toContain('Admin Login');
-    expect(adminLink.getAttribute('href')).toEqual('http://localhost:4000/admin/');
+    expect(adminLink.getAttribute('href')).toContain('http://localhost:4000/admin/');
   });
 });

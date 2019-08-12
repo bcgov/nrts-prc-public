@@ -82,7 +82,9 @@ export class ApplicationService {
     // Certain Statuses require unique considerations, which are accounted for here
 
     const appStatusCodeGroups =
-      filters && _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getCodeGroup(CodeType.STATUS, statusCode));
+      (filters &&
+        _.flatMap(filters.appStatuses, statusCode => ConstantUtils.getCodeGroup(CodeType.STATUS, statusCode))) ||
+      [];
 
     appStatusCodeGroups.forEach(statusCodeGroup => {
       if (statusCodeGroup === StatusCodes.ABANDONED) {

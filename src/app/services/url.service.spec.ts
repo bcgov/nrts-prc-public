@@ -1,10 +1,16 @@
 import { TestBed, inject } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 import { UrlService } from './url.service';
+import { of } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
 
 describe('UrlService', () => {
+  const activatedRouteStub = { queryParamMap: of() };
+
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [UrlService]
+      imports: [RouterTestingModule],
+      providers: [{ provide: ActivatedRoute, useValue: activatedRouteStub }, UrlService]
     });
   });
 

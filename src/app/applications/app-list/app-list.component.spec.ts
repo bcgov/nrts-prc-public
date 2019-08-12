@@ -1,20 +1,24 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppListComponent } from './app-list.component';
 import { RouterTestingModule } from '@angular/router/testing';
-import { VarDirective } from 'app/utils/ng-var.directive';
 import { CommentPeriodService } from 'app/services/commentperiod.service';
+import { ApplicationService } from 'app/services/application.service';
 
 describe('AppListComponent', () => {
   let component: AppListComponent;
   let fixture: ComponentFixture<AppListComponent>;
-  const apiServiceSpy = jasmine.createSpyObj('ApiService', ['getApplications']);
-  const commentPeriodService = new CommentPeriodService(apiServiceSpy);
+
+  const applicationServiceSpy = jasmine.createSpyObj('ApplicationService', ['getById']);
+  const commentPeriodService = jasmine.createSpyObj('CommentPeriodService', ['isOpen', 'isNotOpen', 'getStatusString']);
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [AppListComponent, VarDirective],
+      declarations: [AppListComponent],
       imports: [RouterTestingModule],
-      providers: [{ provide: CommentPeriodService, useValue: commentPeriodService }]
+      providers: [
+        { provide: ApplicationService, useValue: applicationServiceSpy },
+        { provide: CommentPeriodService, useValue: commentPeriodService }
+      ]
     }).compileComponents();
   }));
 
