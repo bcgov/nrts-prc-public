@@ -46,7 +46,7 @@ pipeline {
       steps {
         script {
           try {
-            notifyBuild(Building: ${env.JOB_NAME} ${env.BUILD_ID}", "YELLOW")
+            notifyBuild("Building: ${env.JOB_NAME} ${env.BUILD_ID}", "YELLOW")
             echo "Building: env.JOB_NAME=${env.JOB_NAME} env.BUILD_ID=${env.BUILD_ID}"
             openshiftBuild bldCfg: 'angular-on-nginx-master-build-angular-app-build', showBuildLogs: 'true'
           } catch (e) {
