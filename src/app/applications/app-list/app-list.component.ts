@@ -6,6 +6,7 @@ import * as _ from 'lodash';
 import { Application } from 'app/models/application';
 import { ApplicationService } from 'app/services/application.service';
 import { CommentPeriodService } from 'app/services/commentperiod.service';
+import { ConstantUtils, CodeType } from 'app/utils/constants/constantUtils';
 
 const LIST_PAGE_SIZE = 10;
 
@@ -19,7 +20,6 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
   @Input() applications: Application[] = []; // from applications component
   @Input() isListVisible: Application[] = []; // from applications component
   @Output() setCurrentApp = new EventEmitter(); // to applications component
-  @Output() unsetCurrentApp = new EventEmitter(); // to applications component
 
   private currentApp: Application = null; // for selecting app in list
   public isListLoading = true; // initial value
@@ -81,10 +81,6 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
       if (!this.isCurrentApp(item)) {
         this.currentApp = item; // set
         this.setCurrentApp.emit(item);
-      } else {
-        // DO NOT UNSET DETAILS AT THIS TIME
-        // this.currentApp = null; // unset
-        // this.unsetCurrentApp.emit(item);
       }
     }
   }
@@ -127,5 +123,16 @@ export class AppListComponent implements OnInit, OnChanges, OnDestroy {
       // end of loading is when we have loaded some of our data
       this.isListLoading = false;
     }
+  }
+
+  /**
+   * Given a status code, returns a long user-friendly status string.
+   *
+   * @param {string} statusCode
+   * @returns {string}
+   * @memberof AppListComponent
+   */
+  getStatusStringLong(statusCode: string): string {
+    return ConstantUtils.getTextLong(CodeType.STATUS, statusCode);
   }
 }
