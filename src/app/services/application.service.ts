@@ -378,9 +378,9 @@ export class ApplicationService {
   isAmendment(application: Application): boolean {
     return (
       application &&
-      application.status === StatusCodes.ABANDONED.code &&
-      (application.reason === ReasonCodes.AMENDMENT_APPROVED.code ||
-        application.reason === ReasonCodes.AMENDMENT_NOT_APPROVED.code)
+      ConstantUtils.getCode(CodeType.STATUS, application.status) === StatusCodes.ABANDONED.code &&
+      (ConstantUtils.getCode(CodeType.REASON, application.reason) === ReasonCodes.AMENDMENT_APPROVED.code ||
+        ConstantUtils.getCode(CodeType.REASON, application.reason) === ReasonCodes.AMENDMENT_NOT_APPROVED.code)
     );
   }
 
@@ -395,9 +395,9 @@ export class ApplicationService {
   isAbandoned(application: Application): boolean {
     return (
       application &&
-      application.status === StatusCodes.ABANDONED.code &&
-      application.reason !== ReasonCodes.AMENDMENT_APPROVED.code &&
-      application.reason !== ReasonCodes.AMENDMENT_NOT_APPROVED.code
+      ConstantUtils.getCode(CodeType.STATUS, application.status) === StatusCodes.ABANDONED.code &&
+      ConstantUtils.getCode(CodeType.REASON, application.reason) !== ReasonCodes.AMENDMENT_APPROVED.code &&
+      ConstantUtils.getCode(CodeType.REASON, application.reason) !== ReasonCodes.AMENDMENT_NOT_APPROVED.code
     );
   }
 
@@ -409,7 +409,10 @@ export class ApplicationService {
    * @memberof ApplicationService
    */
   isApplicationUnderReview(application: Application): boolean {
-    return application && application.status === StatusCodes.APPLICATION_UNDER_REVIEW.code;
+    return (
+      application &&
+      ConstantUtils.getCode(CodeType.STATUS, application.status) === StatusCodes.APPLICATION_UNDER_REVIEW.code
+    );
   }
 
   /**
@@ -420,7 +423,10 @@ export class ApplicationService {
    * @memberof ApplicationService
    */
   isApplicationReviewComplete(application: Application): boolean {
-    return application && application.status === StatusCodes.APPLICATION_REVIEW_COMPLETE.code;
+    return (
+      application &&
+      ConstantUtils.getCode(CodeType.STATUS, application.status) === StatusCodes.APPLICATION_REVIEW_COMPLETE.code
+    );
   }
 
   /**
@@ -431,7 +437,9 @@ export class ApplicationService {
    * @memberof ApplicationService
    */
   isDecisionApproved(application: Application): boolean {
-    return application && application.status === StatusCodes.DECISION_APPROVED.code;
+    return (
+      application && ConstantUtils.getCode(CodeType.STATUS, application.status) === StatusCodes.DECISION_APPROVED.code
+    );
   }
 
   /**
@@ -442,7 +450,10 @@ export class ApplicationService {
    * @memberof ApplicationService
    */
   isDecisionNotApproved(application: Application): boolean {
-    return application && application.status === StatusCodes.DECISION_NOT_APPROVED.code;
+    return (
+      application &&
+      ConstantUtils.getCode(CodeType.STATUS, application.status) === StatusCodes.DECISION_NOT_APPROVED.code
+    );
   }
 
   /**
@@ -453,7 +464,7 @@ export class ApplicationService {
    * @memberof ApplicationService
    */
   isUnknown(application: Application): boolean {
-    return application && application.status === StatusCodes.UNKNOWN.code;
+    return application && ConstantUtils.getCode(CodeType.STATUS, application.status) === StatusCodes.UNKNOWN.code;
   }
 
   /**
