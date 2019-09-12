@@ -19,10 +19,10 @@ import { User } from 'app/models/user';
  * @enum {number}
  */
 export enum QueryParamModifier {
-  Equal = 'eq',
-  Not_Equal = 'ne',
-  Since = 'since',
-  Until = 'until'
+  Equal = 'eq', // value must be equal to this, if multiple value must match at least one
+  Not_Equal = 'ne', // value must not be equal to this, if multiple value must not match any
+  Since = 'since', // date must be on or after this date
+  Until = 'until' // date must be before this date
 }
 
 /**
@@ -58,7 +58,7 @@ export class ApiService {
   public isMS: boolean; // IE, Edge, etc
   public apiPath: string;
   public adminUrl: string;
-  public env: 'local' | 'dev' | 'test' | 'demo' | 'scale' | 'beta' | 'master' | 'prod';
+  public env: 'local' | 'dev' | 'test' | 'master' | 'prod';
 
   constructor(private http: HttpClient) {
     // const currentUser = JSON.parse(window.localStorage.getItem('currentUser'));
@@ -80,39 +80,18 @@ export class ApiService {
         this.env = 'dev';
         break;
 
-      case 'nrts-prc-test.pathfinder.gov.bc.ca':
-        // Test
-        this.apiPath = 'https://nrts-prc-test.pathfinder.gov.bc.ca/api/public';
-        this.adminUrl = 'https://nrts-prc-test.pathfinder.gov.bc.ca/admin/';
-        this.env = 'test';
-        break;
-
-      case 'nrts-prc-demo.pathfinder.gov.bc.ca':
-        // Demo
-        this.apiPath = 'https://nrts-prc-demo.pathfinder.gov.bc.ca/api/public';
-        this.adminUrl = 'https://nrts-prc-demo.pathfinder.gov.bc.ca/admin/';
-        this.env = 'demo';
-        break;
-
-      case 'nrts-prc-scale.pathfinder.gov.bc.ca':
-        // Scale
-        this.apiPath = 'https://nrts-prc-scale.pathfinder.gov.bc.ca/api/public';
-        this.adminUrl = 'https://nrts-prc-scale.pathfinder.gov.bc.ca/admin/';
-        this.env = 'scale';
-        break;
-
-      case 'nrts-prc-beta.pathfinder.gov.bc.ca':
-        // Beta
-        this.apiPath = 'https://nrts-prc-beta.pathfinder.gov.bc.ca/api/public';
-        this.adminUrl = 'https://nrts-prc-beta.pathfinder.gov.bc.ca/admin/';
-        this.env = 'beta';
-        break;
-
       case 'nrts-prc-master.pathfinder.gov.bc.ca':
         // Master
         this.apiPath = 'https://nrts-prc-master.pathfinder.gov.bc.ca/api/public';
         this.adminUrl = 'https://nrts-prc-master.pathfinder.gov.bc.ca/admin/';
         this.env = 'master';
+        break;
+
+      case 'nrts-prc-test.pathfinder.gov.bc.ca':
+        // Test
+        this.apiPath = 'https://nrts-prc-test.pathfinder.gov.bc.ca/api/public';
+        this.adminUrl = 'https://nrts-prc-test.pathfinder.gov.bc.ca/admin/';
+        this.env = 'test';
         break;
 
       default:
@@ -302,7 +281,7 @@ export class ApiService {
       queryString += `centroid=${params['coordinates'].value}&`;
     }
 
-    queryString += `fields=${this.buildValues(fields)}`;
+    queryString += `fields=${this.convertArrayIntoPipeString(fields)}`;
 
     if (!params['clidDtid'] || !params['clidDtid'].value) {
       return this.http.get<Application[]>(`${this.apiPath}/${queryString}`);
@@ -353,7 +332,7 @@ export class ApiService {
       'tenureStage',
       'type'
     ];
-    const queryString = 'application/' + id + '?fields=' + this.buildValues(fields);
+    const queryString = 'application/' + id + '?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Application[]>(`${this.apiPath}/${queryString}`);
   }
 
@@ -362,13 +341,13 @@ export class ApiService {
   //
   getFeaturesByTantalisId(tantalisID: number): Observable<Feature[]> {
     const fields = ['applicationID', 'geometry', 'properties', 'type'];
-    const queryString = `feature?tantalisId=${tantalisID}&fields=${this.buildValues(fields)}`;
+    const queryString = `feature?tantalisId=${tantalisID}&fields=${this.convertArrayIntoPipeString(fields)}`;
     return this.http.get<Feature[]>(`${this.apiPath}/${queryString}`);
   }
 
   getFeaturesByApplicationId(applicationId: string): Observable<Feature[]> {
     const fields = ['applicationID', 'geometry', 'properties', 'type'];
-    const queryString = `feature?applicationId=${applicationId}&fields=${this.buildValues(fields)}`;
+    const queryString = `feature?applicationId=${applicationId}&fields=${this.convertArrayIntoPipeString(fields)}`;
     return this.http.get<Feature[]>(`${this.apiPath}/${queryString}`);
   }
 
@@ -377,13 +356,13 @@ export class ApiService {
   //
   getDecisionByAppId(appId: string): Observable<Decision[]> {
     const fields = ['_addedBy', '_application', 'name', 'description'];
-    const queryString = 'decision?_application=' + appId + '&fields=' + this.buildValues(fields);
+    const queryString = 'decision?_application=' + appId + '&fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Decision[]>(`${this.apiPath}/${queryString}`);
   }
 
   getDecision(id: string): Observable<Decision[]> {
     const fields = ['_addedBy', '_application', 'name', 'description'];
-    const queryString = 'decision/' + id + '?fields=' + this.buildValues(fields);
+    const queryString = 'decision/' + id + '?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Decision[]>(`${this.apiPath}/${queryString}`);
   }
 
@@ -392,13 +371,13 @@ export class ApiService {
   //
   getPeriodsByAppId(appId: string): Observable<CommentPeriod[]> {
     const fields = ['_addedBy', '_application', 'startDate', 'endDate'];
-    const queryString = 'commentperiod?_application=' + appId + '&fields=' + this.buildValues(fields);
+    const queryString = 'commentperiod?_application=' + appId + '&fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<CommentPeriod[]>(`${this.apiPath}/${queryString}`);
   }
 
   getPeriod(id: string): Observable<CommentPeriod[]> {
     const fields = ['_addedBy', '_application', 'startDate', 'endDate'];
-    const queryString = 'commentperiod/' + id + '?fields=' + this.buildValues(fields);
+    const queryString = 'commentperiod/' + id + '?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<CommentPeriod[]>(`${this.apiPath}/${queryString}`);
   }
 
@@ -417,7 +396,7 @@ export class ApiService {
       'dateAdded',
       'commentStatus'
     ];
-    const queryString = 'comment?_commentPeriod=' + periodId + '&fields=' + this.buildValues(fields);
+    const queryString = 'comment?_commentPeriod=' + periodId + '&fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Comment[]>(`${this.apiPath}/${queryString}`);
   }
 
@@ -433,13 +412,13 @@ export class ApiService {
       'dateAdded',
       'commentStatus'
     ];
-    const queryString = 'comment/' + id + '?fields=' + this.buildValues(fields);
+    const queryString = 'comment/' + id + '?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Comment[]>(`${this.apiPath}/${queryString}`);
   }
 
   addComment(comment: Comment): Observable<Comment> {
     const fields = ['comment', 'commentAuthor'];
-    const queryString = 'comment?fields=' + this.buildValues(fields);
+    const queryString = 'comment?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.post<Comment>(`${this.apiPath}/${queryString}`, comment, {});
   }
 
@@ -448,19 +427,19 @@ export class ApiService {
   //
   getDocumentsByAppId(appId: string): Observable<Document[]> {
     const fields = ['_application', 'documentFileName', 'displayName', 'internalURL', 'internalMime'];
-    const queryString = 'document?_application=' + appId + '&fields=' + this.buildValues(fields);
+    const queryString = 'document?_application=' + appId + '&fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Document[]>(`${this.apiPath}/${queryString}`);
   }
 
   getDocumentsByCommentId(commentId: string): Observable<Document[]> {
     const fields = ['_comment', 'documentFileName', 'displayName', 'internalURL', 'internalMime'];
-    const queryString = 'document?_comment=' + commentId + '&fields=' + this.buildValues(fields);
+    const queryString = 'document?_comment=' + commentId + '&fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Document[]>(`${this.apiPath}/${queryString}`);
   }
 
   getDocumentsByDecisionId(decisionId: string): Observable<Document[]> {
     const fields = ['_decision', 'documentFileName', 'displayName', 'internalURL', 'internalMime'];
-    const queryString = 'document?_decision=' + decisionId + '&fields=' + this.buildValues(fields);
+    const queryString = 'document?_decision=' + decisionId + '&fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Document[]>(`${this.apiPath}/${queryString}`);
   }
 
@@ -471,7 +450,7 @@ export class ApiService {
 
   uploadDocument(formData: FormData): Observable<Document> {
     const fields = ['documentFileName', 'displayName', 'internalURL', 'internalMime'];
-    const queryString = 'document/?fields=' + this.buildValues(fields);
+    const queryString = 'document/?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.post<Document>(`${this.apiPath}/${queryString}`, formData, { reportProgress: true });
   }
 
@@ -484,7 +463,7 @@ export class ApiService {
   //
   getAllUsers(): Observable<User[]> {
     const fields = ['displayName', 'username', 'firstName', 'lastName'];
-    const queryString = 'user?fields=' + this.buildValues(fields);
+    const queryString = 'user?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<User[]>(`${this.apiPath}/${queryString}`);
   }
 
@@ -498,7 +477,7 @@ export class ApiService {
    * @returns {string}
    * @memberof ApiService
    */
-  private buildValues(collection: string[]): string {
+  private convertArrayIntoPipeString(collection: string[]): string {
     if (!collection || collection.length <= 0) {
       return '';
     }

@@ -14,11 +14,19 @@ describe('CommentModalComponent', () => {
   let component: CommentModalComponent;
   let fixture: ComponentFixture<CommentModalComponent>;
 
+  const commentServiceSpy = jasmine.createSpyObj('CommentService', ['add']);
+  const documentServiceSpy = jasmine.createSpyObj('DocumentService', ['add']);
+
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [CommentModalComponent, MockComponent(FileUploadComponent), MatProgressBar],
       imports: [FormsModule],
-      providers: [NgbActiveModal, DialogService, { provide: CommentService }, { provide: DocumentService }]
+      providers: [
+        NgbActiveModal,
+        DialogService,
+        { provide: CommentService, useValue: commentServiceSpy },
+        { provide: DocumentService, useValue: documentServiceSpy }
+      ]
     }).compileComponents();
   }));
 

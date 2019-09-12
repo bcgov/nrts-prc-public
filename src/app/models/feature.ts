@@ -2,7 +2,7 @@
 // this is the data structure as returned by Tantalis
 //
 export class Feature {
-  id: string;
+  _id: string;
   type: string;
   geometry: {
     type: string;
@@ -40,7 +40,7 @@ export class Feature {
   };
 
   constructor(obj?: any) {
-    this.id = (obj && obj.id) || null;
+    this._id = (obj && obj._id) || null;
     this.type = (obj && obj.type) || null;
     this.geometry = (obj && obj.geometry) || null;
     this.properties = (obj && obj.properties) || null;
