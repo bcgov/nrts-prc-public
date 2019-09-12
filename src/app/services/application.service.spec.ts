@@ -36,8 +36,8 @@ describe('ApplicationService', () => {
     const featureServiceSpy = jasmine.createSpyObj('FeatureService', ['getByApplicationId']);
     featureServiceSpy.getByApplicationId.and.returnValue(
       of([
-        new Feature({ id: 'FFFFF', properties: { TENURE_AREA_IN_HECTARES: 12 } }),
-        new Feature({ id: 'GGGGG', properties: { TENURE_AREA_IN_HECTARES: 13 } })
+        new Feature({ _id: 'FFFFF', properties: { TENURE_AREA_IN_HECTARES: 12 } }),
+        new Feature({ _id: 'GGGGG', properties: { TENURE_AREA_IN_HECTARES: 13 } })
       ])
     );
 
@@ -221,8 +221,8 @@ describe('ApplicationService', () => {
         service.getById('AAAA').subscribe(application => {
           expect(application.features).toBeDefined();
           expect(application.features).not.toBeNull();
-          expect(application.features[0].id).toBe('FFFFF');
-          expect(application.features[1].id).toBe('GGGGG');
+          expect(application.features[0]._id).toBe('FFFFF');
+          expect(application.features[1]._id).toBe('GGGGG');
         });
       }));
     });
