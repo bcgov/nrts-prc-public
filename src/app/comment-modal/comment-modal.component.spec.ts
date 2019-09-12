@@ -18,7 +18,7 @@ describe('CommentModalComponent', () => {
     TestBed.configureTestingModule({
       declarations: [CommentModalComponent, MockComponent(FileUploadComponent), MatProgressBar],
       imports: [FormsModule],
-      providers: [NgbActiveModal, DialogService, { provide: CommentService }, { provide: DocumentService }]
+      providers: [NgbActiveModal, DialogService, CommentService, DocumentService]
     }).compileComponents();
   }));
 
