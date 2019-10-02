@@ -135,6 +135,10 @@ _Note: Not all linting/formatting errors can be automatically fixed, and will re
 
 [Jasmine](https://jasmine.github.io/), [Karma](https://karma-runner.github.io/latest/index.html), [Protractor](http://www.protractortest.org/)
 
+### Important Note
+
+When viewing test output in the browser, via localhost:9876, Firefox produces somewhat cryptic error output.  Chrome doesn't have this issue.
+
 ## Run Tests
 
 * Run the unit tests with `watch=true`
@@ -152,7 +156,7 @@ _Note: Not all linting/formatting errors can be automatically fixed, and will re
   ```
 * Run the end-to-end tests
 
-  Before running the tests make sure you are serving the app via `ng serve`.
+  Before running the tests make sure you are serving the app via `ng serve`
   ```
   npm run e2e
   ```
