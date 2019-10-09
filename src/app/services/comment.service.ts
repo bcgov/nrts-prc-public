@@ -113,9 +113,6 @@ export class CommentService {
     if (comment.comment) {
       comment.comment = comment.comment.replace(/\n/g, '\\n');
     }
-    if (comment.review && comment.review.reviewerNotes) {
-      comment.review.reviewerNotes = comment.review.reviewerNotes.replace(/\n/g, '\\n');
-    }
 
     return this.api.addComment(comment).pipe(
       map((res: Comment) => {

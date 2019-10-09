@@ -24,7 +24,7 @@ export class CommentModalComponent implements OnInit {
   public progressBufferValue: number; // used in template
   public totalSize: number;
   public currentPage = 1;
-  private comment: Comment;
+  public comment: Comment;
   public files: File[] = [];
 
   constructor(

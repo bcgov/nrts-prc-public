@@ -10,7 +10,6 @@ import { CommentPeriod } from 'app/models/commentperiod';
 import { Decision } from 'app/models/decision';
 import { Document } from 'app/models/document';
 import { Feature } from 'app/models/feature';
-import { User } from 'app/models/user';
 
 /**
  * Supported query param field modifiers used by the api to interpret the query param value.
@@ -386,32 +385,14 @@ export class ApiService {
   //
   getCommentsByPeriodId(periodId: string): Observable<Comment[]> {
     // requested application fields
-    const fields = [
-      '_addedBy',
-      '_commentPeriod',
-      'commentNumber',
-      'comment',
-      'commentAuthor',
-      'review',
-      'dateAdded',
-      'commentStatus'
-    ];
+    const fields = ['_addedBy', '_commentPeriod', 'comment', 'commentAuthor', 'dateAdded'];
     const queryString = 'comment?_commentPeriod=' + periodId + '&fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Comment[]>(`${this.apiPath}/${queryString}`);
   }
 
   getComment(id: string): Observable<Comment[]> {
     // requested application fields
-    const fields = [
-      '_addedBy',
-      '_commentPeriod',
-      'commentNumber',
-      'comment',
-      'commentAuthor',
-      'review',
-      'dateAdded',
-      'commentStatus'
-    ];
+    const fields = ['_addedBy', '_commentPeriod', 'comment', 'commentAuthor', 'dateAdded'];
     const queryString = 'comment/' + id + '?fields=' + this.convertArrayIntoPipeString(fields);
     return this.http.get<Comment[]>(`${this.apiPath}/${queryString}`);
   }
@@ -456,15 +437,6 @@ export class ApiService {
 
   getDocumentUrl(document: Document): string {
     return document ? this.apiPath + '/document/' + document._id + '/download' : '';
-  }
-
-  //
-  // Users
-  //
-  getAllUsers(): Observable<User[]> {
-    const fields = ['displayName', 'username', 'firstName', 'lastName'];
-    const queryString = 'user?fields=' + this.convertArrayIntoPipeString(fields);
-    return this.http.get<User[]>(`${this.apiPath}/${queryString}`);
   }
 
   /**
