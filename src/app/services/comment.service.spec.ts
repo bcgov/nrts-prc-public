@@ -394,16 +394,10 @@ describe('CommentService', () => {
           _id: '3',
           _addedBy: 'addedby',
           _commentPeriod: '123',
-          commentNumber: '2',
           comment:
             'This is a comment. With multiple sentences.\nAnd new lines.\n\nAnd symbols !@#$%^&*()_+{}:";\',.<>.',
           commentAuthor: { _userId: '88' },
-          review: {
-            _reviewerId: '99',
-            reviewerNotes: 'This is a reviewer note\nWith 2 lines.'
-          },
           dateAdded: new Date(),
-          commentStatus: 'status',
           documents: [new Document({ _id: '77' })]
         });
 
@@ -421,7 +415,6 @@ describe('CommentService', () => {
           expect(modifiedComment.documents).toBeUndefined();
 
           expect(modifiedComment.comment).toEqual(comment.comment.replace(/\n/g, '\\n'));
-          expect(modifiedComment.review.reviewerNotes).toEqual(comment.review.reviewerNotes.replace(/\n/g, '\\n'));
         });
       }));
     });
