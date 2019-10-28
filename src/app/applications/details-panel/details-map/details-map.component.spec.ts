@@ -10,12 +10,12 @@ describe('DetailsMapComponent', () => {
   let component: DetailsMapComponent;
   let fixture: ComponentFixture<DetailsMapComponent>;
 
-  const mockFeatureService = jasmine.createSpyObj('FeatureService', ['getByApplicationId', 'getByTantalisId']);
+  const featureServiceSpy = jasmine.createSpyObj('FeatureService', ['getByApplicationId', 'getByTantalisId']);
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [DetailsMapComponent],
-      providers: [{ provide: FeatureService, useValue: mockFeatureService }]
+      providers: [{ provide: FeatureService, useValue: featureServiceSpy }]
     }).compileComponents();
   }));
 
@@ -23,7 +23,7 @@ describe('DetailsMapComponent', () => {
     fixture = TestBed.createComponent(DetailsMapComponent);
     component = fixture.componentInstance;
     component.application = new Application();
-    mockFeatureService.getByApplicationId.and.returnValue(of([new Feature()]));
+    featureServiceSpy.getByApplicationId.and.returnValue(of([new Feature()]));
     fixture.detectChanges();
   });
 
