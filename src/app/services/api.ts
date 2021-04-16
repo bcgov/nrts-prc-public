@@ -96,7 +96,7 @@ export class ApiService {
         // Dev
         this.apiPath = 'https://nrpti-api-86cabb-test.apps.silver.devops.gov.bc.ca/api/public';
         this.adminUrl = 'https://acrfd-admin-86cabb-test.apps.silver.devops.gov.bc.ca/admin/';
-        this.env = 'dev';
+        this.env = 'test';
         break;
       case 'nrts-prc-test.pathfinder.gov.bc.ca':
         // Test
