@@ -79,10 +79,10 @@ export class ApiService {
         this.adminUrl = 'https://nrts-prc-dev.pathfinder.gov.bc.ca/admin/';
         this.env = 'dev';
         break;
-     case 'acrfd-public-86cabb-dev.apps.silver.devops.gov.bc.ca':
+     case 'acrfd-86cabb-dev.apps.silver.devops.gov.bc.ca':
         // Dev
-        this.apiPath = 'https://nrpti-api-86cabb-dev.apps.silver.devops.gov.bc.ca/api/public';
-        this.adminUrl = 'https://acrfd-admin-86cabb-dev.apps.silver.devops.gov.bc.ca/admin/';
+        this.apiPath = 'https://acrfd-86cabb-dev.apps.silver.devops.gov.bc.ca/api/public';
+        this.adminUrl = 'https://acrfd-86cabb-dev.apps.silver.devops.gov.bc.ca/admin/';
         this.env = 'dev';
         break;
 
@@ -92,10 +92,10 @@ export class ApiService {
         this.adminUrl = 'https://nrts-prc-master.pathfinder.gov.bc.ca/admin/';
         this.env = 'master';
         break;
-      case 'acrfd-public-86cabb-test.apps.silver.devops.gov.bc.ca':
+      case 'acrfd-86cabb-test.apps.silver.devops.gov.bc.ca':
         // Dev
-        this.apiPath = 'https://nrpti-api-86cabb-test.apps.silver.devops.gov.bc.ca/api/public';
-        this.adminUrl = 'https://acrfd-admin-86cabb-test.apps.silver.devops.gov.bc.ca/admin/';
+        this.apiPath = 'https://acrfd-86cabb-test.apps.silver.devops.gov.bc.ca/api/public';
+        this.adminUrl = 'https://acrfd-86cabb-test.apps.silver.devops.gov.bc.ca/admin/';
         this.env = 'test';
         break;
       case 'nrts-prc-test.pathfinder.gov.bc.ca':
